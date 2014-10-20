@@ -1354,6 +1354,7 @@
     <module>common</module>
     <module>contrib</module>
     <module>exec</module>
+    <module>hlookup</module>
     <module>distribution</module>
   </modules>
 </project>

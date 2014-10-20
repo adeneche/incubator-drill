@@ -45,6 +45,11 @@
       <version>${project.version}</version>
       <classifier>rebuffed</classifier>
     </dependency>
+      <dependency>
+          <groupId>org.apache.drill</groupId>
+          <artifactId>hbase-lookup</artifactId>
+          <version>${project.version}</version>
+      </dependency>
     <dependency>
       <groupId>org.apache.drill</groupId>
       <artifactId>drill-common</artifactId>
