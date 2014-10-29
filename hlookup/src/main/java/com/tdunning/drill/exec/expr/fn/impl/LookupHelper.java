@@ -22,7 +22,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import org.apache.drill.exec.expr.holders.NullableVarCharHolder;
+import io.netty.buffer.DrillBuf;
 import org.apache.drill.exec.expr.holders.VarBinaryHolder;
 import org.apache.drill.exec.vector.complex.writer.BaseWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -44,50 +44,53 @@ import java.util.regex.Pattern;
  * specify all columns in a particular family.
  */
 public class LookupHelper {
+    static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(LookupHelper.class);
+
     private final ThreadLocal<String> tableName = new ThreadLocal<>();
     private final ThreadLocal<HTable> tbl = new ThreadLocal<>();
 
     private final ThreadLocal<String> columns = new ThreadLocal<>();
     private final ThreadLocal<List<ColumSpec>> specs = new ThreadLocal<>();
 
-    public void lookup(NullableVarCharHolder table, NullableVarCharHolder columns, NullableVarCharHolder key, BaseWriter.ComplexWriter writer) {
-        Preconditions.checkArgument(table.isSet > 0, "Must have valid table, got null instead");
-        Preconditions.checkArgument(columns.isSet > 0, "Must have valid column spec, got null instead");
-        if (key.isSet == 0) {
-            // null key, null result
-            return;
-        }
+    private final ThreadLocal<DrillBuf> buffer = new ThreadLocal<>();
 
+    public LookupHelper(DrillBuf buf) {
+        buffer.set(buf);
+    }
+
+    public void lookup(String table, String columns, byte[] key, BaseWriter.ComplexWriter writer) {
         // cache the table
-        String name = table.buffer.toString(Charsets.UTF_8);
-        if (tbl.get() == null || !name.equals(tableName.get())) {
-            tableName.set(name);
+        if (tbl.get() == null || !table.equals(tableName.get())) {
+            tableName.set(table);
             try {
                 tbl.set(new HTable(new Configuration(), tableName.get()));
             } catch (IOException e) {
-                throw new IllegalArgumentException(String.format("Can't open table %s", name), e);
+                throw new IllegalArgumentException(String.format("Can't open table %s", table), e);
             }
+
+            logger.info("table name {}", table);
         }
 
         // cache the column specifications
-        String columnNames = table.buffer.toString(Charsets.UTF_8);
-        if (!columnNames.equals(this.columns.get())) {
+        if (!columns.equals(this.columns.get())) {
+            this.columns.set(columns);
+
             specs.set(null);
             Splitter onComma = Splitter.on(",").trimResults().omitEmptyStrings();
             Pattern columnPattern = Pattern.compile("(\\w+):((\\w*)|\\*)");
             List<ColumSpec> columnSpec = Lists.newArrayList();
-            for (String column : onComma.split(columnNames)) {
+            for (String column : onComma.split(columns)) {
                 Matcher m = columnPattern.matcher(column);
                 Preconditions.checkState(m.matches(), String.format("Invalid column specification %s", column));
                 columnSpec.add(new ColumSpec(m.group(1), m.group(2)));
             }
             specs.set(columnSpec);
+
+            logger.info("column names {}", specs.get());
         }
 
         // set up the table read
-        byte[] rowKey = new byte[key.end - key.start];
-        key.buffer.getBytes(key.start, rowKey, 0, key.end - key.start);
-        Get g = new Get(rowKey);
+        Get g = new Get(key);
         for (ColumSpec spec : specs.get()) {
             spec.add(g);
         }
@@ -106,9 +109,15 @@ public class LookupHelper {
 
                 NavigableMap<byte[], byte[]> familyMap = resultMap.get(family);
                 for (byte[] column : familyMap.keySet()) {
-                    VarBinaryHolder binaryHolder = new VarBinaryHolder();
-                    binaryHolder.buffer.setBytes(0, familyMap.get(column));
                     String resultColumn = familyName + ":" + new String(column, Charsets.UTF_8);
+                    byte[] value = familyMap.get(column);
+
+                    VarBinaryHolder binaryHolder = new VarBinaryHolder();
+                    binaryHolder.buffer = buffer.get();
+                    binaryHolder.buffer.reallocIfNeeded(value.length);
+                    binaryHolder.buffer.setBytes(0, value);
+                    binaryHolder.start = 0;
+                    binaryHolder.end = value.length;
                     mw.varBinary(resultColumn).write(binaryHolder);
                 }
             }
@@ -137,6 +146,14 @@ public class LookupHelper {
                 g.addFamily(family);
             } else {
                 g.addColumn(family, column);
+            }
+        }
+
+        public String toString() {
+            if (column == null) {
+                return new String(family);
+            } else {
+                return new String(family)+":"+new String(column);
             }
         }
     }
