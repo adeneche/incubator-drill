@@ -188,7 +188,7 @@ public class WorkManager implements AutoCloseable {
    *
    * <p>This is intended to be used by {@link org.apache.drill.exec.server.Drillbit#close()}.</p>
    */
-  public void waitToExit() {
+  public void  waitToExit() {
     synchronized(this) {
       if (queries.isEmpty() && runningFragments.isEmpty()) {
         return;
@@ -204,6 +204,13 @@ public class WorkManager implements AutoCloseable {
         // keep waiting
       }
       break;
+    }
+
+    if (!queries.isEmpty() || !runningFragments.isEmpty()) {
+      System.out.printf("**** WorkManager: %d queries, %d running fragments%n", queries.size(), runningFragments.size());
+      for (Foreman foreman : queries.values()) {
+        System.out.println("**** query: " + foreman.getQueryPlan());
+      }
     }
   }
 
