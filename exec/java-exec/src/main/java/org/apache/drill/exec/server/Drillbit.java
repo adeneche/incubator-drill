@@ -291,6 +291,14 @@ public class Drillbit implements AutoCloseable {
     isClosed = true;
   }
 
+  public int numRunningQueries() {
+    return manager.numRunningQueries();
+  }
+
+  public int numRunningFragments() {
+    return manager.numRunningFragments();
+  }
+
   /**
    * Shutdown hook for Drillbit. Closes the drillbit, and reports on errors that
    * occur during closure, as well as the location the drillbit was started from.

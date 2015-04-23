@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.common.SelfCleaningRunnable;
 import org.apache.drill.exec.coord.ClusterCoordinator;
-import org.apache.drill.exec.planner.fragment.Fragment;
 import org.apache.drill.exec.proto.BitControl.FragmentStatus;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
@@ -206,20 +205,6 @@ public class WorkManager implements AutoCloseable {
       }
       break;
     }
-
-    if (!queries.isEmpty() || !runningFragments.isEmpty()) {
-      System.err.println("closing ****************************************************");
-      System.err.printf("******* Cancelling Queries : %d, Running Fragments : %d%n", queries.size(), runningFragments.size());
-      for (Foreman foreman : queries.values()) {
-        foreman.cancel();
-      }
-      try {
-        exitLatch.await(5, TimeUnit.SECONDS);
-      } catch(final InterruptedException e) {
-        // keep waiting
-      }
-      System.err.println("closed ****************************************************");
-    }
   }
 
   /**
@@ -234,6 +219,14 @@ public class WorkManager implements AutoCloseable {
         }
       }
     }
+  }
+
+  public int numRunningQueries() {
+    return queries.size();
+  }
+
+  public int numRunningFragments() {
+    return runningFragments.size();
   }
 
   /**

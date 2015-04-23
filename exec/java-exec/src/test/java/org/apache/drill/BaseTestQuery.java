@@ -53,12 +53,14 @@ import org.apache.drill.exec.util.VectorUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import org.junit.runners.model.Statement;
 
 public class BaseTestQuery extends ExecTest {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseTestQuery.class);
@@ -71,6 +73,19 @@ public class BaseTestQuery extends ExecTest {
     {
       put(ExecConstants.SYS_STORE_PROVIDER_LOCAL_ENABLE_WRITE, "false");
       put(ExecConstants.HTTP_ENABLE, "false");
+    }
+  };
+
+  private static final AtomicInteger countInterrupted = new AtomicInteger(0);
+
+  @Rule
+  public TestWatcher watchman = new TestWatcher() {
+
+    @Override
+    protected void failed(Throwable e, Description description) {
+      if (e != null && e instanceof InterruptedException) {
+        countInterrupted.incrementAndGet();
+      }
     }
   };
 
@@ -213,12 +228,24 @@ public class BaseTestQuery extends ExecTest {
       client.close();
     }
 
+    int numRunningQueries = 0;
+    int numRunningFragments = 0;
+    int numInterrupted = countInterrupted.get();
+
     if (bits != null) {
       for(Drillbit bit : bits) {
         if (bit != null) {
+          numRunningQueries += bit.numRunningQueries();
+          numRunningFragments += bit.numRunningFragments();
           bit.close();
         }
       }
+    }
+
+    if (numInterrupted > 0 || numRunningFragments > 0 || numRunningQueries > 0) {
+      System.out.println("****************************************************************");
+      System.out.printf("num interrupted: %d, num running queries: %d, num running fragments: %d%n", numInterrupted, numRunningQueries, numRunningFragments);
+      System.out.println("****************************************************************");
     }
 
     if(serviceSet != null) {
