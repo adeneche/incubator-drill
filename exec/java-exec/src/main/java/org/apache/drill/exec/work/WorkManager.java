@@ -205,6 +205,12 @@ public class WorkManager implements AutoCloseable {
       }
       break;
     }
+
+    if (!queries.isEmpty() || !runningFragments.isEmpty()) {
+      System.err.println("****************************************************");
+      System.err.printf("Queries : %d, Running Fragments : %d%n", queries.size(), runningFragments.size());
+      System.err.println("****************************************************");
+    }
   }
 
   /**

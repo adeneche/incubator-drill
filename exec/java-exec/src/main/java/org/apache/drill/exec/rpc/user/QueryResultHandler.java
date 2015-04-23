@@ -117,7 +117,7 @@ public class QueryResultHandler {
         try {
           resultsListener.queryCompleted(queryState);
         } catch ( Exception e ) {
-          resultsListener.submissionFailed(UserException.systemError(e).build());
+          resultsListener.submissionFailed(UserException.systemError(e).build(logger));
         }
       } else {
         logger.warn("queryState {} was ignored", queryState);
@@ -158,7 +158,7 @@ public class QueryResultHandler {
       // That releases batch if successful.
     } catch ( Exception e ) {
       batch.release();
-      resultsListener.submissionFailed(UserException.systemError(e).build());
+      resultsListener.submissionFailed(UserException.systemError(e).build(logger));
     }
   }
 
@@ -192,7 +192,7 @@ public class QueryResultHandler {
 
   private void failAll() {
     for (UserResultsListener l : queryIdToResultsListenersMap.values()) {
-      l.submissionFailed(UserException.systemError(new RpcException("Received result without QueryId")).build());
+      l.submissionFailed(UserException.systemError(new RpcException("Received result without QueryId")).build(logger));
     }
   }
 
@@ -278,7 +278,7 @@ public class QueryResultHandler {
 
     @Override
     public void failed(RpcException ex) {
-      resultsListener.submissionFailed(UserException.systemError(ex).build());
+      resultsListener.submissionFailed(UserException.systemError(ex).build(logger));
     }
 
     @Override

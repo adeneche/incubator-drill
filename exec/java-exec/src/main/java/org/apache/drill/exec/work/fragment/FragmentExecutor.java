@@ -235,7 +235,7 @@ public class FragmentExecutor implements Runnable {
       final UserException uex = UserException.systemError(deferredException.getAndClear())
           .addIdentity(getContext().getIdentity())
           .addContext("Fragment", handle.getMajorFragmentId() + ":" + handle.getMinorFragmentId())
-          .build();
+          .build(logger);
       listener.fail(fragmentContext.getHandle(), uex);
     } else {
       listener.stateChanged(fragmentContext.getHandle(), outcome);

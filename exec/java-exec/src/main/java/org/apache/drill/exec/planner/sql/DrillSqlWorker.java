@@ -47,7 +47,6 @@ import org.apache.drill.exec.planner.sql.parser.impl.DrillParserWithCompoundIdCo
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.testing.ExecutionControlsInjector;
 import org.apache.drill.exec.util.Pointer;
-import org.apache.drill.exec.work.foreman.ForemanException;
 import org.apache.drill.exec.work.foreman.ForemanSetupException;
 import org.eigenbase.rel.RelCollationTraitDef;
 import org.eigenbase.rel.rules.ReduceExpressionsRule;
@@ -62,7 +61,7 @@ import org.eigenbase.sql.parser.SqlParseException;
 import org.eigenbase.sql.parser.SqlParser;
 
 public class DrillSqlWorker {
-//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillSqlWorker.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillSqlWorker.class);
   private final static ExecutionControlsInjector injector = ExecutionControlsInjector.getInjector(DrillSqlWorker.class);
 
   private final Planner planner;
@@ -158,7 +157,7 @@ public class DrillSqlWorker {
       return handler.getPlan(sqlNode);
     } catch(ValidationException e) {
       String errorMessage = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-      throw UserException.parseError(e).message(errorMessage).build();
+      throw UserException.parseError(e).message(errorMessage).build(logger);
     } catch (IOException | RelConversionException e) {
       throw new QueryInputException("Failure handling SQL.", e);
     }

@@ -617,7 +617,7 @@ public class Foreman implements Runnable {
           .setQueryState(resultState);
       if (resultException != null) {
         final boolean verbose = queryContext.getOptions().getOption(ExecConstants.ENABLE_VERBOSE_ERRORS_KEY).bool_val;
-        final UserException uex = UserException.systemError(resultException).addIdentity(queryContext.getCurrentEndpoint()).build();
+        final UserException uex = UserException.systemError(resultException).addIdentity(queryContext.getCurrentEndpoint()).build(logger);
         resultBuilder.addError(uex.getOrCreatePBError(verbose));
       }
 
@@ -873,7 +873,7 @@ public class Foreman implements Runnable {
           .message(
               "Exceeded timeout while waiting send intermediate work fragments to remote nodes.  Sent %d and only heard response back from %d nodes.",
               intFragmentMap.keySet().size(), intFragmentMap.keySet().size() - numberRemaining)
-          .build();
+          .build(logger);
     }
 
 
@@ -898,7 +898,7 @@ public class Foreman implements Runnable {
       throw UserException.connectionError(submissionExceptions.get(0).rpcException)
           .message("Error setting up remote intermediate fragment execution")
           .addContext("Nodes with failures", sb.toString())
-          .build();
+          .build(logger);
     }
 
     injector.injectChecked(queryContext.getExecutionControls(), "send-fragments", ForemanException.class);

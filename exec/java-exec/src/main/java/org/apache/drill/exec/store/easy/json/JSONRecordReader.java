@@ -164,7 +164,7 @@ public class JSONRecordReader extends AbstractRecordReader {
       .addContext("Filename", hadoopPath.toUri().getPath())
       .addContext("Record", recordCount + 1)
       .addContext("Column", columnNr)
-      .build();
+      .build(logger);
   }
 
 

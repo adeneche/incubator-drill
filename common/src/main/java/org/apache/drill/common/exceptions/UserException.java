@@ -19,6 +19,7 @@ package org.apache.drill.common.exceptions;
 
 import org.apache.drill.exec.proto.CoordinationProtos;
 import org.apache.drill.exec.proto.UserBitShared.DrillPBError;
+import org.slf4j.Logger;
 
 /**
  * Base class for all user exception. The goal is to separate out common error condititions where we can give users
@@ -451,12 +452,23 @@ public class UserException extends DrillRuntimeException {
       return this;
     }
 
+
     /**
      * builds a user exception or returns the wrapped one.
      *
      * @return user exception
      */
     public UserException build() {
+      return build(null);
+    }
+
+    /**
+     * builds a user exception or returns the wrapped one. If a logger is provided, the exception will be logged.
+     *
+     * @param logger if not null, the user exception will be logged
+     * @return user exception
+     */
+    public UserException build(Logger logger) {
 
       if (uex != null) {
         return uex;
@@ -464,14 +476,16 @@ public class UserException extends DrillRuntimeException {
 
       final UserException newException = new UserException(this);
 
-      // since we just created a new exception, we should log it for later reference. If this is a system error, this is
-      // an issue that the Drill admin should pay attention to and we should log as ERROR. However, if this is a user
-      // mistake or data read issue, the system admin should not be concerned about these and thus we'll log this
-      // as an INFO message.
-      if (errorType == DrillPBError.ErrorType.SYSTEM) {
-        logger.error(newException.getMessage(), newException);
-      } else {
-        logger.info("User Error Occurred", newException);
+      if (logger != null) {
+        // since we just created a new exception, we should log it for later reference. If this is a system error, this is
+        // an issue that the Drill admin should pay attention to and we should log as ERROR. However, if this is a user
+        // mistake or data read issue, the system admin should not be concerned about these and thus we'll log this
+        // as an INFO message.
+        if (errorType == DrillPBError.ErrorType.SYSTEM) {
+          logger.error(newException.getMessage(), newException);
+        } else {
+          logger.info("User Error Occurred", newException);
+        }
       }
 
       return newException;
