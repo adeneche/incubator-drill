@@ -208,15 +208,17 @@ public class WorkManager implements AutoCloseable {
     }
 
     if (!queries.isEmpty() || !runningFragments.isEmpty()) {
-      System.err.println("****************************************************");
-      System.err.printf("******* Queries : %d, Running Fragments : %d%n", queries.size(), runningFragments.size());
+      System.err.println("closing ****************************************************");
+      System.err.printf("******* Cancelling Queries : %d, Running Fragments : %d%n", queries.size(), runningFragments.size());
       for (Foreman foreman : queries.values()) {
-        System.err.printf("******* Query.foreman.state: %s%n", foreman.getState());
+        foreman.cancel();
       }
-      for (FragmentExecutor fragment : runningFragments.values()) {
-        System.err.printf("******* Fragment.status: %s%n", fragment.getStatus());
+      try {
+        exitLatch.await(5, TimeUnit.SECONDS);
+      } catch(final InterruptedException e) {
+        // keep waiting
       }
-      System.err.println("****************************************************");
+      System.err.println("closed ****************************************************");
     }
   }
 
