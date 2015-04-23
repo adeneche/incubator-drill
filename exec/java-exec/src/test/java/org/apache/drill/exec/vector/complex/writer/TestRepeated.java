@@ -19,6 +19,8 @@ package org.apache.drill.exec.vector.complex.writer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 import org.apache.drill.exec.expr.holders.BigIntHolder;
 import org.apache.drill.exec.expr.holders.IntHolder;
@@ -39,9 +41,16 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.base.Charsets;
 
 public class TestRepeated {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestRepeated.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestRepeated.class);
 
   private static BufferAllocator allocator;
+
+  private final PrintStream dummystream = new PrintStream(new OutputStream() {
+    @Override
+    public void write(int b) throws IOException {
+      // NO OP
+    }
+  });
 
   @BeforeClass
   public static void setupAllocator(){
@@ -107,7 +116,7 @@ public class TestRepeated {
 //
 //    assert writer.ok();
 //
-//    System.out.println(v.getAccessor().getObject(0));
+//    dummyStream.println(v.getAccessor().getObject(0));
 //
 //  }
 
@@ -241,8 +250,8 @@ public class TestRepeated {
 
     ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
 
-    System.out.println("Map of Object[0]: " + ow.writeValueAsString(v.getAccessor().getObject(0)));
-    System.out.println("Map of Object[1]: " + ow.writeValueAsString(v.getAccessor().getObject(1)));
+    dummystream.println("Map of Object[0]: " + ow.writeValueAsString(v.getAccessor().getObject(0)));
+    dummystream.println("Map of Object[1]: " + ow.writeValueAsString(v.getAccessor().getObject(1)));
 
 
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -252,8 +261,8 @@ public class TestRepeated {
     jsonWriter.write(reader);
     reader.setPosition(1);
     jsonWriter.write(reader);
-    System.out.print("Json Read: ");
-    System.out.println(new String(stream.toByteArray(), Charsets.UTF_8));
+    dummystream.print("Json Read: ");
+    dummystream.println(new String(stream.toByteArray(), Charsets.UTF_8));
 
     writer.clear();
 
