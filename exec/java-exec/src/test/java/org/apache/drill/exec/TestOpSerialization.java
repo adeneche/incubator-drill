@@ -20,6 +20,9 @@ package org.apache.drill.exec;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.drill.common.config.DrillConfig;
@@ -39,7 +42,14 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 public class TestOpSerialization {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOpSerialization.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOpSerialization.class);
+
+  private final PrintStream dummyStream = new PrintStream(new OutputStream() {
+    @Override
+    public void write(int b) throws IOException {
+      //NO OP
+    }
+  });
 
   @Test
   public void testSerializedDeserialize() throws Throwable {
@@ -68,11 +78,11 @@ public class TestOpSerialization {
       }
       PhysicalPlan plan1 = new PhysicalPlan(PlanProperties.builder().build(), pops);
       String json = plan1.unparse(c.getMapper().writer());
-      System.out.println(json);
+      dummyStream.println(json);
 
       PhysicalPlan plan2 = reader.readPhysicalPlan(json);
-      System.out.println("++++++++");
-      System.out.println(plan2.unparse(c.getMapper().writer()));
+      dummyStream.println("++++++++");
+      dummyStream.println(plan2.unparse(c.getMapper().writer()));
 
       PhysicalOperator root = plan2.getSortedOperators(false).iterator().next();
       assertEquals(0, root.getOperatorId());

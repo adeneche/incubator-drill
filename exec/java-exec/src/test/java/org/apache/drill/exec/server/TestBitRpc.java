@@ -47,15 +47,12 @@ import org.apache.drill.exec.proto.UserBitShared.QueryId;
 import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.record.MaterializedField;
 import org.apache.drill.exec.record.WritableBatch;
-import org.apache.drill.exec.rpc.RemoteConnection;
-import org.apache.drill.exec.rpc.ResponseSender;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.rpc.control.WorkEventBus;
 import org.apache.drill.exec.rpc.data.AckSender;
 import org.apache.drill.exec.rpc.data.DataConnectionManager;
 import org.apache.drill.exec.rpc.data.DataResponseHandler;
-import org.apache.drill.exec.rpc.data.DataRpcConfig;
 import org.apache.drill.exec.rpc.data.DataServer;
 import org.apache.drill.exec.rpc.data.DataTunnel;
 import org.apache.drill.exec.vector.Float8Vector;
@@ -68,7 +65,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
 public class TestBitRpc extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestBitRpc.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestBitRpc.class);
 
   @Test
   public void testConnectionBackpressure(@Injectable WorkerBee bee, @Injectable final WorkEventBus workBus, @Injectable final FragmentManager fman, @Injectable final FragmentContext fcon) throws Exception {
@@ -97,10 +94,10 @@ public class TestBitRpc extends ExecTest {
       long t1 = System.currentTimeMillis();
       tunnel.sendRecordBatch(new TimingOutcome(max), new FragmentWritableBatch(false, QueryId.getDefaultInstance(), 1,
           1, 1, 1, getRandomBatch(c.getAllocator(), 5000)));
-      System.out.println(System.currentTimeMillis() - t1);
-      // System.out.println("sent.");
+      dummyStream.println(System.currentTimeMillis() - t1);
+      // dummyStream.println("sent.");
     }
-    System.out.println(String.format("Max time: %d", max.get()));
+    dummyStream.println(String.format("Max time: %d", max.get()));
     assertTrue(max.get() > 2700);
     Thread.sleep(5000);
   }
@@ -135,7 +132,7 @@ public class TestBitRpc extends ExecTest {
     @Override
     public void success(Ack value, ByteBuf buffer) {
       long micros = watch.elapsed(TimeUnit.MILLISECONDS);
-      System.out.println(String.format("Total time to send: %d, start time %d", micros, System.currentTimeMillis() - micros));
+      dummyStream.println(String.format("Total time to send: %d, start time %d", micros, System.currentTimeMillis() - micros));
       while (true) {
         long nowMax = max.get();
         if (nowMax < micros) {
@@ -161,11 +158,11 @@ public class TestBitRpc extends ExecTest {
     @Override
     public void handle(FragmentManager manager, FragmentRecordBatch fragmentBatch, DrillBuf data, AckSender sender)
         throws FragmentSetupException, IOException {
-      // System.out.println("Received.");
+      // dummyStream.println("Received.");
       try {
         v++;
         if (v % 10 == 0) {
-          System.out.println("sleeping.");
+          dummyStream.println("sleeping.");
           Thread.sleep(3000);
         }
       } catch (InterruptedException e) {

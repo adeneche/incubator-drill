@@ -84,15 +84,15 @@ public class TestLoad extends ExecTest {
       if (firstColumn) {
         firstColumn = false;
       } else {
-        System.out.print("\t");
+        dummyStream.print("\t");
       }
-      System.out.print(v.getField().toExpr());
-      System.out.print("[");
-      System.out.print(v.getField().getType().getMinorType());
-      System.out.print("]");
+      dummyStream.print(v.getField().toExpr());
+      dummyStream.print("[");
+      dummyStream.print(v.getField().getType().getMinorType());
+      dummyStream.print("]");
     }
 
-    System.out.println();
+    dummyStream.println();
     for (int r = 0; r < batchLoader.getRecordCount(); r++) {
       boolean first = true;
       recordCount++;
@@ -100,22 +100,22 @@ public class TestLoad extends ExecTest {
         if (first) {
           first = false;
         } else {
-          System.out.print("\t");
+          dummyStream.print("\t");
         }
         ValueVector.Accessor accessor = v.getValueVector().getAccessor();
         if (v.getField().getType().getMinorType() == TypeProtos.MinorType.VARCHAR) {
           Object obj = accessor.getObject(r);
           if (obj != null) {
-            System.out.print(accessor.getObject(r));
+            dummyStream.print(accessor.getObject(r));
           } else {
-            System.out.print("NULL");
+            dummyStream.print("NULL");
           }
         } else {
-          System.out.print(accessor.getObject(r));
+          dummyStream.print(accessor.getObject(r));
         }
       }
       if (!first) {
-        System.out.println();
+        dummyStream.println();
       }
     }
     assertEquals(100, recordCount);

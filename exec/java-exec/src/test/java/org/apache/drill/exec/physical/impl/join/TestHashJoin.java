@@ -63,7 +63,7 @@ import com.google.common.io.Files;
 
 
 public class TestHashJoin extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergeJoin.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergeJoin.class);
 
   @Rule public final TestRule TIMEOUT = TestTools.getTimeoutRule(100000);
 
@@ -95,7 +95,7 @@ public class TestHashJoin extends PopUnitTestBase {
     }
     exec.stop();
     assertEquals(expectedRows, totalRecordCount);
-    System.out.println("Total Record Count: " + totalRecordCount);
+//    System.out.println("Total Record Count: " + totalRecordCount);
     if (context.getFailureCause() != null) {
       throw context.getFailureCause();
     }
@@ -187,7 +187,7 @@ public class TestHashJoin extends PopUnitTestBase {
         b.release();
       }
 
-      System.out.println("Total records: " + count);
+//      System.out.println("Total records: " + count);
       assertEquals(25, count);
     }
   }
@@ -262,7 +262,7 @@ public class TestHashJoin extends PopUnitTestBase {
         b.release();
       }
 
-      System.out.println("Total records: " + count);
+//      System.out.println("Total records: " + count);
       assertEquals(272, count);
     }
   }

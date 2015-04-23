@@ -41,7 +41,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestSimpleFragmentRun extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleFragmentRun.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleFragmentRun.class);
 
   private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -67,35 +67,17 @@ public class TestSimpleFragmentRun extends PopUnitTestBase {
 
       // print headers.
       if (schemaChanged) {
-        System.out.println("\n\n========NEW SCHEMA=========\n\n");
         for (VectorWrapper<?> value : batchLoader) {
-
-          if (firstColumn) {
-            firstColumn = false;
-          } else {
-            System.out.print("\t");
-          }
-          System.out.print(value.getField().toExpr());
-          System.out.print("[");
-          System.out.print(value.getField().getType().getMinorType());
-          System.out.print("]");
+          dummyStream.print(value.getField().toExpr());
+          dummyStream.print(value.getField().getType().getMinorType());
         }
-        System.out.println();
       }
 
       for (int i = 0; i < batchLoader.getRecordCount(); i++) {
         boolean first = true;
         recordCount++;
         for (VectorWrapper<?> value : batchLoader) {
-          if (first) {
-            first = false;
-          } else {
-            System.out.print("\t");
-          }
-          System.out.print(value.getValueVector().getAccessor().getObject(i));
-        }
-        if (!first) {
-          System.out.println();
+          dummyStream.print(value.getValueVector().getAccessor().getObject(i));
         }
       }
       batchLoader.clear();
@@ -142,38 +124,18 @@ public class TestSimpleFragmentRun extends PopUnitTestBase {
         boolean firstColumn = true;
 
         // print headers.
-        System.out.println("\n\n========NEW SCHEMA=========\n\n");
         for (VectorWrapper<?> v : batchLoader) {
 
-          if (firstColumn) {
-            firstColumn = false;
-          } else {
-            System.out.print("\t");
-          }
-          System.out.print(v.getField().toExpr());
-          System.out.print("[");
-          System.out.print(v.getField().getType().getMinorType());
-          System.out.print("]");
+          dummyStream.print(v.getField().toExpr());
+          dummyStream.print(v.getField().getType().getMinorType());
         }
-
-        System.out.println();
-
 
         for (int r = 0; r < batchLoader.getRecordCount(); r++) {
           boolean first = true;
           recordCount++;
           for (VectorWrapper<?> v : batchLoader) {
-            if (first) {
-              first = false;
-            } else {
-              System.out.print("\t");
-            }
-
             ValueVector.Accessor accessor = v.getValueVector().getAccessor();
-            System.out.print(accessor.getObject(r));
-          }
-          if (!first) {
-            System.out.println();
+            dummyStream.print(accessor.getObject(r));
           }
         }
         batchLoader.clear();

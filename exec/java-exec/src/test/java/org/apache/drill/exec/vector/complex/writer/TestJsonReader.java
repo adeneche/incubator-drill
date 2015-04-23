@@ -101,26 +101,26 @@ public class TestJsonReader extends BaseTestQuery {
 
   public void runTestsOnFile(String filename, UserBitShared.QueryType queryType, String[] queries, long[] rowCounts) throws Exception {
     if (VERBOSE_DEBUG) {
-      System.out.println("===================");
-      System.out.println("source data in json");
-      System.out.println("===================");
-      System.out.println(Files.toString(FileUtils.getResourceAsFile(filename), Charsets.UTF_8));
+      dummyStream.println("===================");
+      dummyStream.println("source data in json");
+      dummyStream.println("===================");
+      dummyStream.println(Files.toString(FileUtils.getResourceAsFile(filename), Charsets.UTF_8));
     }
 
     int i = 0;
     for (String query : queries) {
       if (VERBOSE_DEBUG) {
-        System.out.println("=====");
-        System.out.println("query");
-        System.out.println("=====");
-        System.out.println(query);
-        System.out.println("======");
-        System.out.println("result");
-        System.out.println("======");
+        dummyStream.println("=====");
+        dummyStream.println("query");
+        dummyStream.println("=====");
+        dummyStream.println(query);
+        dummyStream.println("======");
+        dummyStream.println("result");
+        dummyStream.println("======");
       }
       int rowCount = testRunAndPrint(queryType, query);
       assertEquals(rowCounts[i], rowCount);
-      System.out.println();
+      dummyStream.println();
       i++;
     }
   }

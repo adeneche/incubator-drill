@@ -50,7 +50,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestSimpleProjection extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleProjection.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleProjection.class);
   DrillConfig c = DrillConfig.create();
 
   @Test
@@ -71,7 +71,7 @@ public class TestSimpleProjection extends ExecTest {
     SimpleRootExec exec = new SimpleRootExec(ImplCreator.getExec(context, (FragmentRoot) plan.getSortedOperators(false).iterator().next()));
 
     while (exec.next()) {
-      VectorUtil.showVectorAccessibleContent(exec.getIncoming(), "\t");
+      VectorUtil.showVectorAccessibleContent(exec.getIncoming(), dummyStream, "\t");
       NullableBigIntVector c1 = exec.getValueVectorById(new SchemaPath("col1", ExpressionPosition.UNKNOWN), NullableBigIntVector.class);
       NullableBigIntVector c2 = exec.getValueVectorById(new SchemaPath("col2", ExpressionPosition.UNKNOWN), NullableBigIntVector.class);
       int x = 0;

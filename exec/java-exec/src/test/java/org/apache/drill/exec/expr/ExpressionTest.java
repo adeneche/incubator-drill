@@ -40,7 +40,6 @@ import org.apache.drill.common.types.TypeProtos.MinorType;
 import org.apache.drill.common.types.Types;
 import org.apache.drill.exec.ExecTest;
 import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
-import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.memory.TopLevelAllocator;
 import org.apache.drill.exec.physical.impl.project.Projector;
 import org.apache.drill.exec.record.RecordBatch;
@@ -51,14 +50,14 @@ import org.apache.drill.exec.vector.ValueVector;
 import org.junit.Test;
 
 public class ExpressionTest extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionTest.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionTest.class);
 
   DrillConfig c = DrillConfig.create();
   FunctionImplementationRegistry registry = new FunctionImplementationRegistry(c);
 
   @Test
   public void testBasicExpression(@Injectable RecordBatch batch) throws Exception {
-    System.out.println(getExpressionCode("if(true) then 1 else 0 end", batch));
+    getExpressionCode("if(true) then 1 else 0 end", batch);
   }
 
   @Test
@@ -77,7 +76,7 @@ public class ExpressionTest extends ExecTest {
       }
 
     };
-    System.out.println(getExpressionCode("1 + 1", batch));
+    getExpressionCode("1 + 1", batch);
   }
 
   @Test
@@ -92,7 +91,7 @@ public class ExpressionTest extends ExecTest {
       }
 
     };
-    System.out.println(getExpressionCode("1 + alpha", batch));
+    getExpressionCode("1 + alpha", batch);
 
   }
 

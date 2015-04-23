@@ -37,8 +37,7 @@ import org.apache.drill.exec.record.TypedFieldId;
 import org.junit.Test;
 
 public class TestEvaluationVisitor {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestEvaluationVisitor.class);
-
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestEvaluationVisitor.class);
 
   @Test
   public void x() throws Exception{
@@ -69,18 +68,12 @@ public class TestEvaluationVisitor {
     ValueVectorWriteExpression e2 = new ValueVectorWriteExpression(outId, e, true);
 
     v.addExpr(e2,  g.getRoot());
-    System.out.println(g.generateAndGet());
+    g.generateAndGet();
   }
 
   private LogicalExpression getExpr(String expr) throws Exception{
     ExprLexer lexer = new ExprLexer(new ANTLRStringStream(expr));
     CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-//    tokens.fill();
-//    for(Token t : (List<Token>) tokens.getTokens()){
-//      System.out.println(t + "" + t.getType());
-//    }
-//    tokens.rewind();
 
     ExprParser parser = new ExprParser(tokens);
     parse_return ret = parser.parse();

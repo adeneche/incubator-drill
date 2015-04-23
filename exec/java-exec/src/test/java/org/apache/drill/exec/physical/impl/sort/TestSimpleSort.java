@@ -51,7 +51,7 @@ import com.google.common.io.Files;
 
 @Ignore
 public class TestSimpleSort extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleSort.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleSort.class);
   DrillConfig c = DrillConfig.create();
 
 
@@ -96,8 +96,6 @@ public class TestSimpleSort extends ExecTest {
 
 
     }
-
-    System.out.println(String.format("Sorted %,d records in %d batches.", recordCount, batchCount));
 
     if(context.getFailureCause() != null){
       throw context.getFailureCause();
@@ -148,15 +146,10 @@ public class TestSimpleSort extends ExecTest {
         }
 
         assert previousLong >= a2.get(i);
-
-        //System.out.println(previousInt + "\t" + a2.get(i));
-
       }
 
 
     }
-
-    System.out.println(String.format("Sorted %,d records in %d batches.", recordCount, batchCount));
 
     if(context.getFailureCause() != null){
       throw context.getFailureCause();

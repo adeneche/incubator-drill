@@ -96,7 +96,7 @@ public class TestHiveUDFs extends BaseTestQuery {
           assertEquals(nullableStr1.toUpperCase(), upperNullableStr1);
         }
 
-        System.out.println(in + ", " + upper + ", " + concat + ", " +
+        dummyStream.println(in + ", " + upper + ", " + concat + ", " +
           flt1 + ", " + format_number + ", " + nullableStr1 + ", " + upperNullableStr1);
 
         numRecords++;
@@ -106,7 +106,7 @@ public class TestHiveUDFs extends BaseTestQuery {
       batchLoader.clear();
     }
 
-    System.out.println("Processed " + numRecords + " records");
+    dummyStream.println("Processed " + numRecords + " records");
   }
 
   @Test
@@ -151,7 +151,7 @@ public class TestHiveUDFs extends BaseTestQuery {
           assertTrue(Math.pow(flt1, 2.0) == pow);
         }
 
-        System.out.println(str1 + ", " + str1Length + ", " + str1Ascii + ", " + flt1 + ", " + pow);
+        dummyStream.println(str1 + ", " + str1Length + ", " + str1Ascii + ", " + flt1 + ", " + pow);
         numRecords++;
       }
 
@@ -159,7 +159,7 @@ public class TestHiveUDFs extends BaseTestQuery {
       batchLoader.clear();
     }
 
-    System.out.println("Processed " + numRecords + " records");
+    dummyStream.println("Processed " + numRecords + " records");
   }
 
 }

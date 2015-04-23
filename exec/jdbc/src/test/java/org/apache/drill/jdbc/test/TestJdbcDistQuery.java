@@ -25,7 +25,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.drill.common.util.TestTools;
 import org.apache.drill.jdbc.Driver;
@@ -40,7 +39,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 
 public class TestJdbcDistQuery extends JdbcTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestJdbcDistQuery.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestJdbcDistQuery.class);
 
 
   // Set a timeout unless we're debugging.
@@ -207,26 +206,26 @@ public class TestJdbcDistQuery extends JdbcTest {
         ResultSetMetaData md = r.getMetaData();
         if (first) {
           for (int i = 1; i <= md.getColumnCount(); i++) {
-            System.out.print(md.getColumnName(i));
-            System.out.print('\t');
+            dummyStream.print(md.getColumnName(i));
+            dummyStream.print('\t');
           }
-          System.out.println();
+          dummyStream.println();
           first = false;
         }
         while (r.next()) {
           md = r.getMetaData();
 
           for (int i = 1; i <= md.getColumnCount(); i++) {
-            System.out.print(r.getObject(i));
-            System.out.print('\t');
+            dummyStream.print(r.getObject(i));
+            dummyStream.print('\t');
           }
-          System.out.println();
+          dummyStream.println();
         }
 
-        System.out.println(String.format("Query completed in %d millis.", watch.elapsedMillis()));
+        dummyStream.println(String.format("Query completed in %d millis.", watch.elapsedMillis()));
       }
 
-      System.out.println("\n\n\n");
+      dummyStream.println("\n\n\n");
       success = true;
     } finally {
       if (!success) {
@@ -244,8 +243,8 @@ public class TestJdbcDistQuery extends JdbcTest {
       ResultSetMetaData md = r.getMetaData();
       List<String> columns = Lists.newArrayList();
       for (int i = 1; i <= md.getColumnCount(); i++) {
-        System.out.print(md.getColumnName(i));
-        System.out.print('\t');
+        dummyStream.print(md.getColumnName(i));
+        dummyStream.print('\t');
         columns.add(md.getColumnName(i));
       }
       String[] expected = {"fullname", "occupation", "postal_code"};

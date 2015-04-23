@@ -41,7 +41,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 */
 public class Bug1735ConnectionCloseTest extends JdbcTestQueryBase {
 
-  static final Logger logger = getLogger( Bug1735ConnectionCloseTest.class );
+  private static final Logger logger = getLogger( Bug1735ConnectionCloseTest.class );
 
   @Rule
   public TestRule TIMEOUT = TestTools.getTimeoutRule( 120_000 /* ms */ );
@@ -76,7 +76,7 @@ public class Bug1735ConnectionCloseTest extends JdbcTestQueryBase {
   public void testCloseDoesntLeakResourcesBasic() throws Exception {
     for ( int i = 1; i <= SMALL_ITERATION_COUNT; i++ ) {
       logger.info( "iteration " + i + ":" );
-      System.out.println( "iteration " + i + ":" );
+      dummyStream.println( "iteration " + i + ":" );
       Connection connection = new Driver().connect( "jdbc:drill:zk=local", JdbcAssert.getDefaultProperties() );
       connection.close();
     }
@@ -93,7 +93,7 @@ public class Bug1735ConnectionCloseTest extends JdbcTestQueryBase {
   public void testCloseDoesntLeakResourcesMany() throws Exception {
     for ( int i = 1; i <= LARGE_ITERATION_COUNT; i++ ) {
       logger.info( "iteration " + i + ":" );
-      System.out.println( "iteration " + i + ":" );
+      dummyStream.println( "iteration " + i + ":" );
       Connection connection = new Driver().connect( "jdbc:drill:zk=local", JdbcAssert.getDefaultProperties() );
       connection.close();
     }

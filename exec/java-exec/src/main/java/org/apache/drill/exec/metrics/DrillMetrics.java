@@ -36,7 +36,7 @@ import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 
 public class DrillMetrics {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillMetrics.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillMetrics.class);
   static final DrillConfig config = DrillConfig.create();
 
   private DrillMetrics() {
@@ -97,7 +97,7 @@ public class DrillMetrics {
     return RegistryHolder.REGISTRY;
   }
 
-  public static void resetMetrics(){
+  public static synchronized void resetMetrics(){
     RegistryHolder.REGISTRY.removeMatching(new MetricFilter(){
       @Override
       public boolean matches(String name, Metric metric) {

@@ -18,6 +18,7 @@
 package org.apache.drill;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
@@ -405,7 +406,7 @@ public class BaseTestQuery extends ExecTest {
     this.columnWidths = columnWidths;
   }
 
-  protected int printResult(List<QueryDataBatch> results) throws SchemaChangeException {
+  protected int printResult(List<QueryDataBatch> results, PrintStream out) throws SchemaChangeException {
     int rowCount = 0;
     RecordBatchLoader loader = new RecordBatchLoader(getAllocator());
     for(QueryDataBatch result : results) {
@@ -414,11 +415,11 @@ public class BaseTestQuery extends ExecTest {
       if (loader.getRecordCount() <= 0) {
         continue;
       }
-      VectorUtil.showVectorAccessibleContent(loader, columnWidths);
+      VectorUtil.showVectorAccessibleContent(loader, out, columnWidths);
       loader.clear();
       result.release();
     }
-    System.out.println("Total record count: " + rowCount);
+    out.println("Total record count: " + rowCount);
     return rowCount;
   }
 

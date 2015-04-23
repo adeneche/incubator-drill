@@ -56,7 +56,7 @@ public class TestHBaseTableProvider extends BaseHBaseTest {
     int rowCount = 0;
     for (Entry<String, String> entry : hbaseStore) {
       rowCount++;
-      System.out.println(entry.getKey() + "=" + entry.getValue());
+      dummyStream.println(entry.getKey() + "=" + entry.getValue());
     }
     assertEquals(7, rowCount);
 
@@ -74,7 +74,7 @@ public class TestHBaseTableProvider extends BaseHBaseTest {
     rowCount = 0;
     for (Entry<String, String> entry : hbaseTestStore) {
       rowCount++;
-      System.out.println(entry.getKey() + "=" + entry.getValue());
+      dummyStream.println(entry.getKey() + "=" + entry.getValue());
     }
     assertEquals(6, rowCount);
   }

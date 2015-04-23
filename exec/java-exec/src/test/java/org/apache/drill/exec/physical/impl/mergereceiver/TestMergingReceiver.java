@@ -38,7 +38,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 public class TestMergingReceiver extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergingReceiver.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergingReceiver.class);
 
   @Test
   public void twoBitTwoExchange() throws Exception {
@@ -66,16 +66,10 @@ public class TestMergingReceiver extends PopUnitTestBase {
           }
           for (Object cell : row) {
             if (cell == null) {
-              System.out.print("<null>    ");
               continue;
             }
-            int len = cell.toString().length();
-            System.out.print(cell + " ");
-            for (int i = 0; i < (30 - len); ++i) {
-              System.out.print(" ");
-            }
+            cell.toString();
           }
-          System.out.println();
         }
         b.release();
         batchLoader.clear();
@@ -121,13 +115,8 @@ public class TestMergingReceiver extends PopUnitTestBase {
             }
           }
           for (Object cell : row) {
-            int len = cell.toString().length();
-            System.out.print(cell + " ");
-            for (int i = 0; i < (30 - len); ++i) {
-              System.out.print(" ");
-            }
+            cell.toString();
           }
-          System.out.println();
         }
         b.release();
         batchLoader.clear();
@@ -163,16 +152,10 @@ public class TestMergingReceiver extends PopUnitTestBase {
           }
           for (Object cell : row) {
             if (cell == null) {
-              System.out.print("<null>    ");
               continue;
             }
-            int len = cell.toString().length();
-            System.out.print(cell + " ");
-            for (int i = 0; i < (30 - len); ++i) {
-              System.out.print(" ");
-            }
+            cell.toString();
           }
-          System.out.println();
         }
         b.release();
         batchLoader.clear();

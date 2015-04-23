@@ -21,7 +21,18 @@ import org.apache.drill.exec.metrics.DrillMetrics;
 import org.apache.drill.test.DrillTest;
 import org.junit.After;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+
 public class ExecTest extends DrillTest {
+
+  protected static final PrintStream dummyStream = new PrintStream(new OutputStream() {
+    @Override
+    public void write(int b) throws IOException {
+      // NO OP
+    }
+  });
 
   @After
   public void clear(){

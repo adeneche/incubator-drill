@@ -38,7 +38,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestDateFunctions extends PopUnitTestBase {
-    static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestDateFunctions.class);
+//    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestDateFunctions.class);
 
     public void testCommon(String[] expectedResults, String physicalPlan, String resourceFile) throws Exception {
         try (RemoteServiceSet serviceSet = RemoteServiceSet.getLocalServiceSet();
@@ -62,7 +62,7 @@ public class TestDateFunctions extends PopUnitTestBase {
             for (VectorWrapper<?> v : batchLoader) {
 
                 ValueVector.Accessor accessor = v.getValueVector().getAccessor();
-                System.out.println(accessor.getObject(0));
+                accessor.getObject(0);
                 assertEquals( expectedResults[i++], accessor.getObject(0).toString());
             }
 

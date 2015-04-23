@@ -20,6 +20,8 @@ package org.apache.drill.exec.client;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 import mockit.Injectable;
 import mockit.NonStrictExpectations;
@@ -59,7 +61,7 @@ import com.google.common.io.Files;
  */
 
 public class DumpCatTest  extends ExecTest{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DumpCatTest.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DumpCatTest.class);
   DrillConfig c = DrillConfig.create();
 
   @Test
@@ -100,11 +102,11 @@ public class DumpCatTest  extends ExecTest{
 
       String logLocation = c.getString(ExecConstants.TRACE_DUMP_DIRECTORY);
 
-      System.out.println("Found log location: " + logLocation);
+      logger.info("Found log location: {}", logLocation);
 
       String filename = String.format("%s//%s_%d_%d_mock-scan", logLocation, qid, majorFragmentId, minorFragmentId);
 
-      System.out.println("File Name: " + filename);
+      logger.info("File Name: {}", filename);
 
       Configuration conf = new Configuration();
       conf.set(FileSystem.FS_DEFAULT_NAME_KEY, c.getString(ExecConstants.TRACE_DUMP_FILESYSTEM));
@@ -118,12 +120,18 @@ public class DumpCatTest  extends ExecTest{
       //Test Query mode
       FileInputStream input = new FileInputStream(filename);
 
-      dumpCat.doQuery(input);
+      PrintStream dummyStream    = new PrintStream(new OutputStream(){
+          public void write(int b) {
+              //NO-OP
+          }
+      });
+
+      dumpCat.doQuery(input, dummyStream);
       input.close();
 
       //Test Batch mode
       input = new FileInputStream(filename);
-      dumpCat.doBatch(input,0,true);
+      dumpCat.doBatch(input, dummyStream, 0, true);
 
       input.close();
   }

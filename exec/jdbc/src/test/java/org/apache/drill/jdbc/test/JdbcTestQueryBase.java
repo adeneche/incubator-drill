@@ -52,30 +52,30 @@ public class JdbcTestQueryBase extends JdbcTest {
         Stopwatch watch = new Stopwatch().start();
         Statement s = conn.createStatement();
         ResultSet r = s.executeQuery(sql);
-        System.out.println(String.format("QueryId: %s", r.unwrap(DrillResultSet.class).getQueryId()));
+        dummyStream.println(String.format("QueryId: %s", r.unwrap(DrillResultSet.class).getQueryId()));
         boolean first = true;
         while (r.next()) {
           ResultSetMetaData md = r.getMetaData();
           if (first == true) {
             for (int i = 1; i <= md.getColumnCount(); i++) {
-              System.out.print(md.getColumnName(i));
-              System.out.print('\t');
+              dummyStream.print(md.getColumnName(i));
+              dummyStream.print('\t');
             }
-            System.out.println();
+            dummyStream.println();
             first = false;
           }
 
           for (int i = 1; i <= md.getColumnCount(); i++) {
-            System.out.print(r.getObject(i));
-            System.out.print('\t');
+            dummyStream.print(r.getObject(i));
+            dummyStream.print('\t');
           }
-          System.out.println();
+          dummyStream.println();
         }
 
-        System.out.println(String.format("Query completed in %d millis.", watch.elapsed(TimeUnit.MILLISECONDS)));
+        dummyStream.println(String.format("Query completed in %d millis.", watch.elapsed(TimeUnit.MILLISECONDS)));
       }
 
-      System.out.println("\n\n\n");
+      dummyStream.println("\n\n\n");
       success = true;
     } finally {
       if (!success) {

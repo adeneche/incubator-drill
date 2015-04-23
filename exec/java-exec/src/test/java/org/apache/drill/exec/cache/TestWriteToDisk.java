@@ -125,9 +125,9 @@ public class TestWriteToDisk extends ExecTest {
             for (int i = 0; i < values; i++) {
               final Object o = vv.getAccessor().getObject(i);
               if (o instanceof byte[]) {
-                System.out.println(new String((byte[]) o));
+                dummyStream.println(new String((byte[]) o));
               } else {
-                System.out.println(o);
+                dummyStream.println(o);
               }
             }
           }

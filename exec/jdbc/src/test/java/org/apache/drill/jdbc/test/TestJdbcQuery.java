@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
@@ -31,7 +30,7 @@ import org.junit.Test;
 import com.google.common.base.Function;
 
 public class TestJdbcQuery extends JdbcTestQueryBase{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestJdbcQuery.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestJdbcQuery.class);
 
   // TODO:  Purge nextUntilEnd(...) and calls when remaining fragment race
   // conditions are fixed (not just DRILL-2245 fixes).
@@ -222,7 +221,7 @@ public class TestJdbcQuery extends JdbcTestQueryBase{
           assertEquals(ts1, result);
           assertEquals(date1, result1);
 
-          System.out.println("Date: " + date.toString() + " time: " + time.toString() + " timestamp: " + ts.toString() +
+          dummyStream.println("Date: " + date.toString() + " time: " + time.toString() + " timestamp: " + ts.toString() +
                              "\ninterval year: " + intervalYear + " intervalDay: " + intervalDay +
                              " date_interval_add: " + ts1.toString() + "date_int_add: " + date1.toString());
 
@@ -251,7 +250,7 @@ public class TestJdbcQuery extends JdbcTestQueryBase{
           assert (resultSet.getMetaData().getColumnType(1) == Types.TIMESTAMP);
           assert (resultSet.getMetaData().getColumnType(2) == Types.DATE);
 
-          System.out.println(JdbcAssert.toString(resultSet));
+          dummyStream.println(JdbcAssert.toString(resultSet));
           resultSet.close();
           statement.close();
           return null;

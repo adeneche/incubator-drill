@@ -79,27 +79,27 @@ public class JdbcTestActionBase extends JdbcTest {
       ResultSetMetaData md = r.getMetaData();
       if (first == true) {
         for (int i = 1; i <= md.getColumnCount(); i++) {
-          System.out.print(md.getColumnName(i));
-          System.out.print('\t');
+          dummyStream.print(md.getColumnName(i));
+          dummyStream.print('\t');
         }
-        System.out.println();
+        dummyStream.println();
         first = false;
       }
 
       for (int i = 1; i <= md.getColumnCount(); i++) {
-        System.out.print(r.getObject(i));
-        System.out.print('\t');
+        dummyStream.print(r.getObject(i));
+        dummyStream.print('\t');
       }
-      System.out.println();
+      dummyStream.println();
     }
 
-    System.out.println(String.format("Query completed in %d millis.", watch.elapsed(TimeUnit.MILLISECONDS)));
+    dummyStream.println(String.format("Query completed in %d millis.", watch.elapsed(TimeUnit.MILLISECONDS)));
 
     if (rowcount != -1) {
       Assert.assertEquals((long) rowcount, (long) rows);
     }
 
-    System.out.println("\n\n\n");
+    dummyStream.println("\n\n\n");
 
   }
 

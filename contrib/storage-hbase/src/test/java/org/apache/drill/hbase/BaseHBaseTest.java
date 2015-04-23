@@ -18,6 +18,7 @@
 package org.apache.drill.hbase;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.drill.BaseTestQuery;
@@ -27,8 +28,6 @@ import org.apache.drill.exec.rpc.user.QueryDataBatch;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.hbase.HBaseStoragePlugin;
 import org.apache.drill.exec.store.hbase.HBaseStoragePluginConfig;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -39,8 +38,6 @@ import com.google.common.io.Files;
 public class BaseHBaseTest extends BaseTestQuery {
 
   private static final String HBASE_STORAGE_PLUGIN_NAME = "hbase";
-
-  protected static Configuration conf = HBaseConfiguration.create();
 
   protected static HBaseStoragePlugin storagePlugin;
 
@@ -77,22 +74,22 @@ public class BaseHBaseTest extends BaseTestQuery {
   protected void runHBasePhysicalVerifyCount(String planFile, String tableName, int expectedRowCount) throws Exception{
     String physicalPlan = getPlanText(planFile, tableName);
     List<QueryDataBatch> results = testPhysicalWithResults(physicalPlan);
-    printResultAndVerifyRowCount(results, expectedRowCount);
+    printResultAndVerifyRowCount(results, dummyStream, expectedRowCount);
   }
 
   protected List<QueryDataBatch> runHBaseSQLlWithResults(String sql) throws Exception {
     sql = canonizeHBaseSQL(sql);
-    System.out.println("Running query:\n" + sql);
+    dummyStream.println("Running query:\n" + sql);
     return testSqlWithResults(sql);
   }
 
   protected void runHBaseSQLVerifyCount(String sql, int expectedRowCount) throws Exception{
     List<QueryDataBatch> results = runHBaseSQLlWithResults(sql);
-    printResultAndVerifyRowCount(results, expectedRowCount);
+    printResultAndVerifyRowCount(results, dummyStream, expectedRowCount);
   }
 
-  private void printResultAndVerifyRowCount(List<QueryDataBatch> results, int expectedRowCount) throws SchemaChangeException {
-    int rowCount = printResult(results);
+  private void printResultAndVerifyRowCount(List<QueryDataBatch> results, PrintStream out, int expectedRowCount) throws SchemaChangeException {
+    int rowCount = printResult(results, out);
     if (expectedRowCount != -1) {
       Assert.assertEquals(expectedRowCount, rowCount);
     }

@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.util;
 
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +33,7 @@ public class VectorUtil {
 
   public static final int DEFAULT_COLUMN_WIDTH = 15;
 
-  public static void showVectorAccessibleContent(VectorAccessible va, final String delimiter) {
+  public static void showVectorAccessibleContent(VectorAccessible va, PrintStream out, final String delimiter) {
 
     int rows = va.getRecordCount();
     List<String> columns = Lists.newArrayList();
@@ -42,7 +43,7 @@ public class VectorUtil {
 
     int width = columns.size();
     for (String column : columns) {
-      System.out.printf("%s%s",column, column == columns.get(width - 1) ? "\n" : delimiter);
+      out.printf("%s%s",column, column == columns.get(width - 1) ? "\n" : delimiter);
     }
     for (int row = 0; row < rows; row++) {
       int columnCounter = 0;
@@ -57,14 +58,14 @@ public class VectorUtil {
         if (o == null) {
           //null value
           String value = "null";
-          System.out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
+          out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
         }
         else if (o instanceof byte[]) {
           String value = new String((byte[]) o);
-          System.out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
+          out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
         } else {
           String value = o.toString();
-          System.out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
+          out.printf("%s%s", value, lastColumn ? "\n" : delimiter);
         }
         columnCounter++;
       }
@@ -109,15 +110,15 @@ public class VectorUtil {
     }
   }
 
-  public static void showVectorAccessibleContent(VectorAccessible va) {
-    showVectorAccessibleContent(va, DEFAULT_COLUMN_WIDTH);
+  public static void showVectorAccessibleContent(VectorAccessible va, PrintStream out) {
+    showVectorAccessibleContent(va, out, DEFAULT_COLUMN_WIDTH);
   }
 
-  public static void showVectorAccessibleContent(VectorAccessible va, int columnWidth) {
-    showVectorAccessibleContent(va, new int[]{ columnWidth });
+  public static void showVectorAccessibleContent(VectorAccessible va, PrintStream out, int columnWidth) {
+    showVectorAccessibleContent(va, out, new int[]{ columnWidth });
   }
 
-  public static void showVectorAccessibleContent(VectorAccessible va, int[] columnWidths) {
+  public static void showVectorAccessibleContent(VectorAccessible va, PrintStream out, int[] columnWidths) {
     int width = 0;
     int columnIndex = 0;
     List<String> columns = Lists.newArrayList();
@@ -135,15 +136,15 @@ public class VectorUtil {
     for (int row = 0; row < rows; row++) {
       // header, every 50 rows.
       if (row%50 == 0) {
-        System.out.println(StringUtils.repeat("-", width + 1));
+        out.println(StringUtils.repeat("-", width + 1));
         columnIndex = 0;
         for (String column : columns) {
           int columnWidth = getColumnWidth(columnWidths, columnIndex);
-          System.out.printf(formats.get(columnIndex), column.length() <= columnWidth ? column : column.substring(0, columnWidth - 1));
+          out.printf(formats.get(columnIndex), column.length() <= columnWidth ? column : column.substring(0, columnWidth - 1));
           columnIndex++;
         }
-        System.out.printf("|\n");
-        System.out.println(StringUtils.repeat("-", width + 1));
+        out.printf("|\n");
+        out.println(StringUtils.repeat("-", width + 1));
       }
       // column values
       columnIndex = 0;
@@ -156,13 +157,13 @@ public class VectorUtil {
         } else {
           cellString = DrillStringUtils.escapeNewLines(String.valueOf(o));
         }
-        System.out.printf(formats.get(columnIndex), cellString.length() <= columnWidth ? cellString : cellString.substring(0, columnWidth - 1));
+        out.printf(formats.get(columnIndex), cellString.length() <= columnWidth ? cellString : cellString.substring(0, columnWidth - 1));
         columnIndex++;
       }
-      System.out.printf("|\n");
+      out.printf("|\n");
     }
     if (rows > 0) {
-      System.out.println(StringUtils.repeat("-", width + 1));
+      out.println(StringUtils.repeat("-", width + 1));
     }
 
     for (VectorWrapper<?> vw : va) {

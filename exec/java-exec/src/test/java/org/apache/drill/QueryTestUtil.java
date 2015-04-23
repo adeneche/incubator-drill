@@ -19,17 +19,22 @@ package org.apache.drill;
 
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.drill.common.config.DrillConfig;
+import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.util.TestTools;
 import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.client.DrillClient;
 import org.apache.drill.exec.client.PrintingResultsListener;
 import org.apache.drill.exec.client.QuerySubmitter.Format;
+import org.apache.drill.exec.proto.UserBitShared;
 import org.apache.drill.exec.proto.UserBitShared.QueryType;
 import org.apache.drill.exec.rpc.RpcException;
+import org.apache.drill.exec.rpc.user.ConnectionThrottle;
 import org.apache.drill.exec.rpc.user.QueryDataBatch;
 import org.apache.drill.exec.rpc.user.UserResultsListener;
 import org.apache.drill.exec.server.RemoteServiceSet;
@@ -100,8 +105,9 @@ public class QueryTestUtil {
   public static int testRunAndPrint(
       final DrillClient drillClient, final QueryType type, final String queryString) throws Exception {
     final String query = normalizeQuery(queryString);
-    PrintingResultsListener resultListener =
-        new PrintingResultsListener(drillClient.getConfig(), Format.TSV, VectorUtil.DEFAULT_COLUMN_WIDTH);
+//    PrintingResultsListener resultListener =
+//        new PrintingResultsListener(drillClient.getConfig(), Format.TSV, VectorUtil.DEFAULT_COLUMN_WIDTH);
+    SilentListener resultListener = new SilentListener();
     drillClient.runQuery(type, query, resultListener);
     return resultListener.await();
   }
@@ -152,4 +158,42 @@ public class QueryTestUtil {
     final String query = QueryTestUtil.normalizeQuery(queryString);
     drillClient.runQuery(type, query, resultListener);
   }
+
+  private static class SilentListener implements UserResultsListener {
+    private volatile UserException exception;
+    private AtomicInteger count = new AtomicInteger();
+    private CountDownLatch latch = new CountDownLatch(1);
+
+    @Override
+    public void submissionFailed(UserException ex) {
+      exception = ex;
+      latch.countDown();
+    }
+
+    @Override
+    public void queryCompleted(UserBitShared.QueryResult.QueryState state) {
+      latch.countDown();
+    }
+
+    @Override
+    public void dataArrived(QueryDataBatch result, ConnectionThrottle throttle) {
+      int rows = result.getHeader().getRowCount();
+      if (result.getData() != null) {
+        count.addAndGet(rows);
+      }
+      result.release();
+    }
+
+    @Override
+    public void queryIdArrived(UserBitShared.QueryId queryId) {}
+
+    public int await() throws Exception {
+      latch.await();
+      if (exception != null) {
+        throw exception;
+      }
+      return count.get();
+    }
+  }
+
 }

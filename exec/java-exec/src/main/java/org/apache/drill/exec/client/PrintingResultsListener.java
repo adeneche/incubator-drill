@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.client;
 
+import java.io.PrintStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,6 +40,7 @@ import org.apache.drill.exec.util.VectorUtil;
 public class PrintingResultsListener implements UserResultsListener {
   AtomicInteger count = new AtomicInteger();
   private CountDownLatch latch = new CountDownLatch(1);
+  private final PrintStream out;
   RecordBatchLoader loader;
   Format format;
   int    columnWidth;
@@ -46,8 +48,9 @@ public class PrintingResultsListener implements UserResultsListener {
   volatile UserException exception;
   QueryId queryId;
 
-  public PrintingResultsListener(DrillConfig config, Format format, int columnWidth) {
+  public PrintingResultsListener(DrillConfig config, PrintStream out, Format format, int columnWidth) {
     this.allocator = new TopLevelAllocator(config);
+    this.out = out;
     loader = new RecordBatchLoader(allocator);
     this.format = format;
     this.columnWidth = columnWidth;
@@ -82,13 +85,13 @@ public class PrintingResultsListener implements UserResultsListener {
 
       switch(format) {
         case TABLE:
-          VectorUtil.showVectorAccessibleContent(loader, columnWidth);
+          VectorUtil.showVectorAccessibleContent(loader, out, columnWidth);
           break;
         case TSV:
-          VectorUtil.showVectorAccessibleContent(loader, "\t");
+          VectorUtil.showVectorAccessibleContent(loader, out, "\t");
           break;
         case CSV:
-          VectorUtil.showVectorAccessibleContent(loader, ",");
+          VectorUtil.showVectorAccessibleContent(loader, out, ",");
           break;
       }
       loader.clear();

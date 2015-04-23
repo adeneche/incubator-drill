@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 
 public class TestAffinityCalculator extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestAffinityCalculator.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestAffinityCalculator.class);
 
   String port = "1234";
   final String path = "path";
@@ -153,7 +153,7 @@ public class TestAffinityCalculator extends ExecTest {
     }
     ImmutableRangeMap<Long,BlockLocation> map = blockMapBuilder.build();
     long tB = System.nanoTime();
-    System.out.println(String.format("Took %f ms to build range map", (float)(tB - tA) / 1e6));
+    dummyStream.println(String.format("Took %f ms to build range map", (float)(tB - tA) / 1e6));
   }
   /*
   @Test

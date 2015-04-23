@@ -50,7 +50,7 @@ import com.google.common.io.Files;
  */
 @Ignore("Disabled until alternative to distributed cache provided.")
 public class TestOrderedPartitionExchange extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOrderedPartitionExchange.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOrderedPartitionExchange.class);
 
   /**
    * Starts two drillbits and runs a physical plan with a Mock scan, project, OrderedParititionExchange, Union Exchange,
@@ -126,10 +126,8 @@ public class TestOrderedPartitionExchange extends PopUnitTestBase {
       }
       StandardDeviation stdDev = new StandardDeviation();
       Mean mean = new Mean();
-      double std = stdDev.evaluate(values);
-      double m = mean.evaluate(values);
-      System.out.println("mean: " + m + " std dev: " + std);
-      //Assert.assertTrue(std < 0.1 * m);
+      stdDev.evaluate(values);
+      mean.evaluate(values);
       assertEquals(31000, count);
     }
   }

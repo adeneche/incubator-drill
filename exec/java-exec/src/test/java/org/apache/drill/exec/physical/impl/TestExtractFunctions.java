@@ -41,7 +41,7 @@ import com.google.common.io.Files;
  * back to VarChar.
  */
 public class TestExtractFunctions extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestExtractFunctions.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestExtractFunctions.class);
 
   @Test
   public void testFromDate() throws Exception {
@@ -125,7 +125,7 @@ public class TestExtractFunctions extends PopUnitTestBase {
         for(int j=0; j<expectedValues[i].length; j++) {
           NullableBigIntVector vv =
               (NullableBigIntVector) batchLoader.getValueAccessorById(NullableBigIntVector.class, j).getValueVector();
-          System.out.println("["+i+"]["+j+"]: Expected: " + expectedValues[i][j] + ", Actual: " + vv.getAccessor().get(i));
+          vv.getAccessor().get(i);
           assertEquals(expectedValues[i][j], vv.getAccessor().get(i));
         }
       }

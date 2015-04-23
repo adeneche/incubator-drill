@@ -50,12 +50,13 @@ import org.joda.time.DateTime;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
 public class ExpressionInterpreterTest  extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionInterpreterTest.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionInterpreterTest.class);
 
   @Test
   public void interpreterNullableStrExpr() throws Exception {
@@ -181,7 +182,7 @@ public class ExpressionInterpreterTest  extends PopUnitTestBase {
     assertEquals(expectFirstTwoValues[0], getValueFromVector(vv, 0));
     assertEquals(expectFirstTwoValues[1], getValueFromVector(vv, 1));
 
-    showValueVectorContent(vv);
+    getValueVectorContent(vv);
 
     vv.clear();
     batch.cleanup();
@@ -230,7 +231,8 @@ public class ExpressionInterpreterTest  extends PopUnitTestBase {
     return vector;
   }
 
-  private void showValueVectorContent(ValueVector vw) {
+  private List<String> getValueVectorContent(ValueVector vw) {
+    List<String> content = new ArrayList<>();
     for (int row = 0; row < vw.getAccessor().getValueCount(); row ++ ) {
       Object o = vw.getAccessor().getObject(row);
       String cellString;
@@ -239,8 +241,11 @@ public class ExpressionInterpreterTest  extends PopUnitTestBase {
       } else {
         cellString = DrillStringUtils.escapeNewLines(String.valueOf(o));
       }
-      System.out.printf(row + "th value: " + cellString + "\n");
+//      System.out.printf(row + "th value: " + cellString + "\n");
+      content.add(cellString);
     }
+
+    return content;
   }
 
   private String getValueFromVector(ValueVector vw, int index) {

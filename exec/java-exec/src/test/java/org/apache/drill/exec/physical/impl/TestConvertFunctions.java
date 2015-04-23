@@ -48,7 +48,6 @@ import org.apache.drill.exec.util.VectorUtil;
 import org.apache.drill.exec.vector.ValueVector;
 import org.apache.drill.exec.vector.VarCharVector;
 import org.joda.time.DateTime;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -131,10 +130,10 @@ public class TestConvertFunctions extends BaseTestQuery {
   @Test
   public void testFixedInts4SQL_to() throws Throwable {
     verifySQL("select"
-           + "   convert_to(-889275714, 'INT')"
-           + " from"
-           + "   cp.`employee.json` LIMIT 1",
-           new byte[] {(byte) 0xBE, (byte) 0xBA, (byte) 0xFE, (byte) 0xCA});
+        + "   convert_to(-889275714, 'INT')"
+        + " from"
+        + "   cp.`employee.json` LIMIT 1",
+      new byte[]{(byte) 0xBE, (byte) 0xBA, (byte) 0xFE, (byte) 0xCA});
   }
 
   @Test
@@ -324,7 +323,7 @@ public class TestConvertFunctions extends BaseTestQuery {
   @Test
   public void testUTF8() throws Throwable {
     verifyPhysicalPlan("convert_from(binary_string('apache_drill'), 'UTF8')", "apache_drill");
-    verifyPhysicalPlan("convert_to('apache_drill', 'UTF8')", new byte[] {'a', 'p', 'a', 'c', 'h', 'e', '_', 'd', 'r', 'i', 'l', 'l'});
+    verifyPhysicalPlan("convert_to('apache_drill', 'UTF8')", new byte[]{'a', 'p', 'a', 'c', 'h', 'e', '_', 'd', 'r', 'i', 'l', 'l'});
   }
 
   @Ignore // TODO(DRILL-2326) remove this when we get rid of the scalar replacement option test cases below
@@ -335,11 +334,12 @@ public class TestConvertFunctions extends BaseTestQuery {
     final List<QueryDataBatch> results =  testLogicalWithResults(logicalPlan);
     int count = 0;
     final RecordBatchLoader loader = new RecordBatchLoader(getAllocator());
+
     for (QueryDataBatch result : results) {
       count += result.getHeader().getRowCount();
       loader.load(result.getHeader().getDef(), result.getData());
       if (loader.getRecordCount() > 0) {
-        VectorUtil.showVectorAccessibleContent(loader);
+        VectorUtil.showVectorAccessibleContent(loader, dummyStream);
       }
       loader.clear();
       result.release();
@@ -550,7 +550,7 @@ public class TestConvertFunctions extends BaseTestQuery {
     } else if (expected instanceof double[] && actual instanceof double[]) {
       assertArrayEquals(message, (double[]) expected, (double[]) actual, DELTA);
     } else {
-      fail(String.format("%s: Error comparing arrays of type '%s' and '%s'",
+      fail(String.format("Error comparing arrays of type '%s' and '%s'",
           expected.getClass().getName(), (actual == null ? "null" : actual.getClass().getName())));
     }
   }

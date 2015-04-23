@@ -310,12 +310,14 @@ public class PlanTestBase extends BaseTestQuery {
         throw new Exception("Looks like you did not provide an explain plan query, please add EXPLAIN PLAN FOR to the beginning of your query.");
       }
 
-      System.out.println(vw.getValueVector().getField().toExpr());
+      vw.getValueVector().getField().toExpr();
+
       ValueVector vv = vw.getValueVector();
       for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
         Object o = vv.getAccessor().getObject(i);
         builder.append(o);
-        System.out.println(vv.getAccessor().getObject(i));
+
+        vv.getAccessor().getObject(i);
       }
       loader.clear();
       b.release();

@@ -29,7 +29,7 @@ public class BasicOptimizerTest extends ExecTest {
     public void parseSimplePlan() throws Exception{
         DrillConfig c = DrillConfig.create();
         LogicalPlan plan = LogicalPlan.parse(c, FileUtils.getResourceAsString("/scan_screen_logical.json"));
-        System.out.println(plan.unparse(c));
+        plan.unparse(c);
         //System.out.println( new BasicOptimizer(DrillConfig.create()).convert(plan).unparse(c.getMapper().writer()));
     }
 }

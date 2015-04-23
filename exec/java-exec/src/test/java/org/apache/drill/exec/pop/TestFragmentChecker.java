@@ -23,7 +23,6 @@ import org.apache.drill.exec.expr.fn.impl.DateUtility;
 import org.apache.drill.exec.ops.QueryDateTimeInfo;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
 import org.apache.drill.exec.planner.fragment.Fragment;
-import org.apache.drill.exec.planner.fragment.PlanningSet;
 import org.apache.drill.exec.planner.fragment.SimpleParallelizer;
 import org.apache.drill.exec.proto.BitControl.PlanFragment;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
@@ -39,7 +38,7 @@ import com.google.common.collect.Lists;
 import static org.junit.Assert.assertEquals;
 
 public class TestFragmentChecker extends PopUnitTestBase{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestFragmentChecker.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestFragmentChecker.class);
 
   @Test
   public void checkSimpleExchangePlan() throws Exception{
@@ -48,7 +47,7 @@ public class TestFragmentChecker extends PopUnitTestBase{
   }
 
   private void print(String fragmentFile, int bitCount, int expectedFragmentCount) throws Exception{
-    System.out.println(String.format("=================Building plan fragments for [%s].  Allowing %d total Drillbits.==================", fragmentFile, bitCount));
+    dummyStream.println(String.format("=================Building plan fragments for [%s].  Allowing %d total Drillbits.==================", fragmentFile, bitCount));
     PhysicalPlanReader ppr = new PhysicalPlanReader(CONFIG, CONFIG.getMapper(), DrillbitEndpoint.getDefaultInstance());
     Fragment fragmentRoot = getRootFragment(ppr, fragmentFile);
     SimpleParallelizer par = new SimpleParallelizer(1000*1000, 5, 10, 1.2);
@@ -69,13 +68,13 @@ public class TestFragmentChecker extends PopUnitTestBase{
     QueryWorkUnit qwu = par.getFragments(new OptionList(), localBit, QueryId.getDefaultInstance(), endpoints, ppr, fragmentRoot,
         UserSession.Builder.newBuilder().withCredentials(UserBitShared.UserCredentials.newBuilder().setUserName("foo").build()).build(),
         queryDateTimeInfo);
-    System.out.println(String.format("=========ROOT FRAGMENT [%d:%d] =========", qwu.getRootFragment().getHandle().getMajorFragmentId(), qwu.getRootFragment().getHandle().getMinorFragmentId()));
+    dummyStream.println(String.format("=========ROOT FRAGMENT [%d:%d] =========", qwu.getRootFragment().getHandle().getMajorFragmentId(), qwu.getRootFragment().getHandle().getMinorFragmentId()));
 
-    System.out.print(qwu.getRootFragment().getFragmentJson());
+    dummyStream.print(qwu.getRootFragment().getFragmentJson());
 
     for(PlanFragment f : qwu.getFragments()) {
-      System.out.println(String.format("=========Fragment [%d:%d]=====", f.getHandle().getMajorFragmentId(), f.getHandle().getMinorFragmentId()));
-      System.out.print(f.getFragmentJson());
+      dummyStream.println(String.format("=========Fragment [%d:%d]=====", f.getHandle().getMajorFragmentId(), f.getHandle().getMinorFragmentId()));
+      dummyStream.print(f.getFragmentJson());
     }
 
     assertEquals(expectedFragmentCount,

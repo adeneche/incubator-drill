@@ -56,7 +56,7 @@ public class TextRecordReaderTest extends PopUnitTestBase {
           count += b.getHeader().getRowCount();
         }
         loader.load(b.getHeader().getDef(), b.getData());
-        VectorUtil.showVectorAccessibleContent(loader);
+        VectorUtil.showVectorAccessibleContent(loader, dummyStream);
         loader.clear();
         b.release();
       }

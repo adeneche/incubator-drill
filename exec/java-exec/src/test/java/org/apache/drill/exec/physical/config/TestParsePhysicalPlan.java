@@ -31,7 +31,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestParsePhysicalPlan extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestParsePhysicalPlan.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestParsePhysicalPlan.class);
 
 
   @Test
@@ -41,6 +41,6 @@ public class TestParsePhysicalPlan extends ExecTest {
     ObjectReader r = c.getMapper().reader(PhysicalPlan.class);
     ObjectWriter writer = c.getMapper().writer();
     PhysicalPlan plan = reader.readPhysicalPlan(Files.toString(FileUtils.getResourceAsFile("/physical_test1.json"), Charsets.UTF_8));
-    System.out.println(plan.unparse(writer));
+    plan.unparse(writer);
   }
 }

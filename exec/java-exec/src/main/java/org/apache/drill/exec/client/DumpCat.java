@@ -19,6 +19,7 @@ package org.apache.drill.exec.client;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.drill.exec.cache.VectorAccessibleSerializable;
@@ -71,9 +72,9 @@ public class DumpCat {
     FileInputStream input = new FileInputStream(file.getAbsoluteFile());
 
     if (o.batch < 0) {
-      dumpCat.doQuery(input);
+      dumpCat.doQuery(input, System.out);
     } else {
-      dumpCat.doBatch(input, o.batch, o.include_headers);
+      dumpCat.doBatch(input, System.out, o.batch, o.include_headers);
     }
 
     input.close();
@@ -165,7 +166,7 @@ public class DumpCat {
    *   Schema change batch indices: 0
    * @throws Exception
    */
-  protected void doQuery(FileInputStream input) throws Exception{
+  protected void doQuery(FileInputStream input, final PrintStream out) throws Exception{
     int  batchNum = 0;
     int  emptyBatchNum = 0;
     BatchSchema prevSchema = null;
@@ -195,12 +196,12 @@ public class DumpCat {
     }
 
     /* output the summary stat */
-    System.out.println(String.format("Total # of batches: %d", batchNum));
+    out.println(String.format("Total # of batches: %d", batchNum));
     //output: rows, selectedRows, avg rec size, total data size.
-    System.out.println(aggBatchMetaInfo.toString());
-    System.out.println(String.format("Empty batch : %d", emptyBatchNum));
-    System.out.println(String.format("Schema changes : %d", schemaChangeIdx.size()));
-    System.out.println(String.format("Schema change batch index : %s", schemaChangeIdx.toString()));
+    out.println(aggBatchMetaInfo.toString());
+    out.println(String.format("Empty batch : %d", emptyBatchNum));
+    out.println(String.format("Schema changes : %d", schemaChangeIdx.size()));
+    out.println(String.format("Schema change batch index : %s", schemaChangeIdx.toString()));
   }
 
   /**
@@ -215,7 +216,7 @@ public class DumpCat {
    * @param targetBatchNum
    * @throws Exception
    */
-  protected void doBatch(FileInputStream input, int targetBatchNum, boolean showHeader) throws Exception {
+  protected void doBatch(FileInputStream input, final PrintStream out, int targetBatchNum, boolean showHeader) throws Exception {
     int batchNum = -1;
 
     VectorAccessibleSerializable vcSerializable = null;
@@ -231,30 +232,30 @@ public class DumpCat {
     }
 
     if (batchNum < targetBatchNum) {
-      System.out.println(String.format("Wrong input of batch # ! Total # of batch in the file is %d. Please input a number 0..%d as batch #", batchNum+1, batchNum));
+      out.println(String.format("Wrong input of batch # ! Total # of batch in the file is %d. Please input a number 0..%d as batch #", batchNum+1, batchNum));
       input.close();
       System.exit(-1);
     }
 
     if (vcSerializable != null) {
-      showSingleBatch(vcSerializable, showHeader);
+      showSingleBatch(out, vcSerializable, showHeader);
       VectorContainer vectorContainer = (VectorContainer) vcSerializable.get();
       vectorContainer.zeroVectors();
     }
   }
 
 
-  private void showSingleBatch (VectorAccessibleSerializable vcSerializable, boolean showHeader) {
+  private void showSingleBatch (final PrintStream out, VectorAccessibleSerializable vcSerializable, boolean showHeader) {
     VectorContainer vectorContainer = (VectorContainer)vcSerializable.get();
 
     /* show the header of the batch */
     if (showHeader) {
-      System.out.println(getBatchMetaInfo(vcSerializable).toString());
+      out.println(getBatchMetaInfo(vcSerializable).toString());
 
-      System.out.println("Schema Information");
+      out.println("Schema Information");
       for (VectorWrapper w : vectorContainer) {
         MaterializedField field = w.getValueVector().getField();
-        System.out.println (String.format("name : %s, minor_type : %s, data_mode : %s",
+        out.println (String.format("name : %s, minor_type : %s, data_mode : %s",
                                           field.toExpr(),
                                           field.getType().getMinorType().toString(),
                                           field.isNullable() ? "nullable":"non-nullable"
@@ -263,7 +264,7 @@ public class DumpCat {
     }
 
     /* show the contents in the batch */
-    VectorUtil.showVectorAccessibleContent(vectorContainer);
+    VectorUtil.showVectorAccessibleContent(vectorContainer, out);
   }
 
 
