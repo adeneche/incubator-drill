@@ -155,10 +155,6 @@ public class Foreman implements Runnable {
     return queryContext;
   }
 
-  public String getQueryPlan() {
-    return queryRequest.getPlan();
-  }
-
   /**
    * Get the QueryManager created for the query.
    *

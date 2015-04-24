@@ -218,7 +218,7 @@
             <option>-dontobfuscate</option>
             <option>-dontoptimize</option>
             <!--<option>-ignorewarnings</option>-->
-            <option>-dontwarn</option>
+            <option>-dontwarn **</option>
             <option>-keep class org.apache.drill.exec.proto.** { *; }</option>
             <option>-keep class org.apache.drill.common.types.** { *; }</option>
             <option>-keep class org.apache.drill.jdbc.Driver { *; }</option>
