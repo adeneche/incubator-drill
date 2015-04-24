@@ -55,7 +55,7 @@ public class DrillClientSystemTest extends DrillSystemTestBase {
     client.connect();
     List<QueryDataBatch> results = client.runQuery(QueryType.LOGICAL, plan);
     for (QueryDataBatch result : results) {
-      System.out.println(result);
+      dummyStream.println(result);
       result.release();
     }
     client.close();
@@ -68,7 +68,7 @@ public class DrillClientSystemTest extends DrillSystemTestBase {
     client.connect();
     List<QueryDataBatch> results = client.runQuery(QueryType.LOGICAL, plan);
     for (QueryDataBatch result : results) {
-      System.out.println(result);
+      dummyStream.println(result);
       result.release();
     }
     client.close();

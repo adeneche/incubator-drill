@@ -60,7 +60,7 @@ import com.google.common.io.Files;
 
 
 public class TestMergeJoin extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergeJoin.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestMergeJoin.class);
 
   DrillConfig c = DrillConfig.create();
 
@@ -87,9 +87,9 @@ public class TestMergeJoin extends PopUnitTestBase {
     while (exec.next()) {
       totalRecordCount += exec.getRecordCount();
       for (ValueVector v : exec) {
-        System.out.print("[" + v.getField().toExpr() + "]        ");
+        dummyStream.print("[" + v.getField().toExpr() + "]        ");
       }
-      System.out.println("\n");
+      dummyStream.println("\n");
       for (int valueIdx = 0; valueIdx < exec.getRecordCount(); valueIdx++) {
         List<Object> row = new ArrayList();
         for (ValueVector v : exec) {
@@ -97,21 +97,21 @@ public class TestMergeJoin extends PopUnitTestBase {
         }
         for (Object cell : row) {
           if (cell == null) {
-            System.out.print("<null>          ");
+            dummyStream.print("<null>          ");
             continue;
           }
           int len = cell.toString().length();
-          System.out.print(cell);
+          dummyStream.print(cell);
           for (int i = 0; i < (14 - len); ++i) {
-            System.out.print(" ");
+            dummyStream.print(" ");
           }
         }
-        System.out.println();
+        dummyStream.println();
       }
-      System.out.println();
+      dummyStream.println();
     }
     assertEquals(100, totalRecordCount);
-    System.out.println("Total Record Count: " + totalRecordCount);
+    dummyStream.println("Total Record Count: " + totalRecordCount);
     if (context.getFailureCause() != null) {
       throw context.getFailureCause();
     }
@@ -145,8 +145,8 @@ public class TestMergeJoin extends PopUnitTestBase {
     int totalRecordCount = 0;
     while (exec.next()) {
       totalRecordCount += exec.getRecordCount();
-      System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
-      System.out.println("       t1                 t2");
+      dummyStream.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
+      dummyStream.println("       t1                 t2");
 
       for (int valueIdx = 0; valueIdx < exec.getRecordCount(); valueIdx++) {
         List<Object> row = Lists.newArrayList();
@@ -155,19 +155,19 @@ public class TestMergeJoin extends PopUnitTestBase {
         }
         for (Object cell : row) {
           if (cell == null) {
-            System.out.print("<null>    ");
+            dummyStream.print("<null>    ");
             continue;
           }
           int len = cell.toString().length();
-          System.out.print(cell + " ");
+          dummyStream.print(cell + " ");
           for (int i = 0; i < (10 - len); ++i) {
-            System.out.print(" ");
+            dummyStream.print(" ");
           }
         }
-        System.out.println();
+        dummyStream.println();
       }
     }
-    System.out.println("Total Record Count: " + totalRecordCount);
+    dummyStream.println("Total Record Count: " + totalRecordCount);
     assertEquals(25, totalRecordCount);
 
     if (context.getFailureCause() != null) {
@@ -203,8 +203,8 @@ public class TestMergeJoin extends PopUnitTestBase {
     int totalRecordCount = 0;
     while (exec.next()) {
       totalRecordCount += exec.getRecordCount();
-      System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
-      System.out.println("       t1                 t2");
+      dummyStream.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
+      dummyStream.println("       t1                 t2");
 
       for (int valueIdx = 0; valueIdx < exec.getRecordCount(); valueIdx++) {
         List<Object> row = Lists.newArrayList();
@@ -213,19 +213,19 @@ public class TestMergeJoin extends PopUnitTestBase {
         }
         for (Object cell : row) {
           if (cell == null) {
-            System.out.print("<null>    ");
+            dummyStream.print("<null>    ");
             continue;
           }
           int len = cell.toString().length();
-          System.out.print(cell + " ");
+          dummyStream.print(cell + " ");
           for (int i = 0; i < (10 - len); ++i) {
-            System.out.print(" ");
+            dummyStream.print(" ");
           }
         }
-        System.out.println();
+        dummyStream.println();
       }
     }
-    System.out.println("Total Record Count: " + totalRecordCount);
+    dummyStream.println("Total Record Count: " + totalRecordCount);
     assertEquals(23, totalRecordCount);
 
     if (context.getFailureCause() != null) {
@@ -261,7 +261,7 @@ public class TestMergeJoin extends PopUnitTestBase {
     int totalRecordCount = 0;
     while (exec.next()) {
       totalRecordCount += exec.getRecordCount();
-      System.out.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
+      dummyStream.println("got next with record count: " + exec.getRecordCount() + " (total: " + totalRecordCount + "):");
 
       for (int valueIdx = 0; valueIdx < exec.getRecordCount(); valueIdx++) {
         List<Object> row = Lists.newArrayList();
@@ -270,19 +270,19 @@ public class TestMergeJoin extends PopUnitTestBase {
         }
         for (Object cell : row) {
           if (cell == null) {
-            System.out.print("<null>    ");
+            dummyStream.print("<null>    ");
             continue;
           }
           int len = cell.toString().length();
-          System.out.print(cell + " ");
+          dummyStream.print(cell + " ");
           for (int i = 0; i < (10 - len); ++i) {
-            System.out.print(" ");
+            dummyStream.print(" ");
           }
         }
-        System.out.println();
+        dummyStream.println();
       }
     }
-    System.out.println("Total Record Count: " + totalRecordCount);
+    dummyStream.println("Total Record Count: " + totalRecordCount);
     assertEquals(25, totalRecordCount);
 
     if (context.getFailureCause() != null) {

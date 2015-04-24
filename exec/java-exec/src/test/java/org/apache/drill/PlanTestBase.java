@@ -159,7 +159,7 @@ public class PlanTestBase extends BaseTestQuery {
     String planStr = getDrillRelPlanInString(sql, SqlExplainLevel.EXPPLAN_ATTRIBUTES, Depth.LOGICAL);
 
     String prefixJoinOrder = getLogicalPrefixJoinOrderFromPlan(planStr);
-    System.out.println(" prefix Join order = \n" + prefixJoinOrder);
+    dummyStream.println(" prefix Join order = \n" + prefixJoinOrder);
     for (String substr : expectedSubstrs) {
       assertTrue(String.format("Expected string %s is not in the prefixJoinOrder %s!", substr, prefixJoinOrder), prefixJoinOrder.contains(substr));
     }
@@ -175,7 +175,7 @@ public class PlanTestBase extends BaseTestQuery {
     String planStr = getDrillRelPlanInString(sql, SqlExplainLevel.EXPPLAN_ATTRIBUTES, Depth.PHYSICAL);
 
     String prefixJoinOrder = getPhysicalPrefixJoinOrderFromPlan(planStr);
-    System.out.println(" prefix Join order = \n" + prefixJoinOrder);
+    dummyStream.println(" prefix Join order = \n" + prefixJoinOrder);
     for (String substr : expectedSubstrs) {
       assertTrue(String.format("Expected string %s is not in the prefixJoinOrder %s!", substr, prefixJoinOrder), prefixJoinOrder.contains(substr));
     }

@@ -83,7 +83,7 @@ import com.google.common.io.Files;
 
 @Ignore
 public class ParquetRecordReaderTest extends BaseTestQuery{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ParquetRecordReaderTest.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ParquetRecordReaderTest.class);
 
   static boolean VERBOSE_DEBUG = false;
 
@@ -276,12 +276,12 @@ public class ParquetRecordReaderTest extends BaseTestQuery{
     HashMap<String, FieldInfo> fields = new HashMap<>();
     ParquetTestProperties props = new ParquetTestProperties(numberRowGroups, recordsPerRowGroup, DEFAULT_BYTES_PER_PAGE, fields);
     TestFileGenerator.populateFieldInfoMap(props);
-    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, testValues);
+    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, testValues, dummyStream);
     Stopwatch watch = new Stopwatch().start();
     testWithListener(type, planText, resultListener);
     resultListener.getResults();
 //    batchLoader.clear();
-    System.out.println(String.format("Took %d ms to run query", watch.elapsed(TimeUnit.MILLISECONDS)));
+    dummyStream.println(String.format("Took %d ms to run query", watch.elapsed(TimeUnit.MILLISECONDS)));
 
   }
 
@@ -311,7 +311,7 @@ public class ParquetRecordReaderTest extends BaseTestQuery{
     HashMap<String, FieldInfo> fields = new HashMap<>();
     ParquetTestProperties props = new ParquetTestProperties(numberRowGroups, recordsPerRowGroup, DEFAULT_BYTES_PER_PAGE, fields);
     TestFileGenerator.populateFieldInfoMap(props);
-    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, true);
+    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, true, dummyStream);
     testWithListener(QueryType.PHYSICAL, Files.toString(FileUtils.getResourceAsFile(plan), Charsets.UTF_8), resultListener);
     resultListener.getResults();
   }
@@ -635,12 +635,12 @@ public class ParquetRecordReaderTest extends BaseTestQuery{
       while ((rowCount = rr.next()) > 0) {
         totalRowCount += rowCount;
       }
-      System.out.println(String.format("Time completed: %s. ", watch.elapsed(TimeUnit.MILLISECONDS)));
+      dummyStream.println(String.format("Time completed: %s. ", watch.elapsed(TimeUnit.MILLISECONDS)));
       rr.cleanup();
     }
 
     allocator.close();
-    System.out.println(String.format("Total row count %s", totalRowCount));
+    dummyStream.println(String.format("Total row count %s", totalRowCount));
   }
 
   // specific tests should call this method, but it is not marked as a test itself intentionally
@@ -664,7 +664,7 @@ public class ParquetRecordReaderTest extends BaseTestQuery{
       TestFileGenerator.generateParquetFile(filename, props);
     }
 
-    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, testValues);
+    ParquetResultListener resultListener = new ParquetResultListener(getAllocator(), props, numberOfTimesRead, testValues, dummyStream);
     long C = System.nanoTime();
     String planText = Files.toString(FileUtils.getResourceAsFile(plan), Charsets.UTF_8);
     // substitute in the string for the read entries, allows reuse of the plan file for several tests
@@ -674,7 +674,7 @@ public class ParquetRecordReaderTest extends BaseTestQuery{
     this.testWithListener(queryType, planText, resultListener);
     resultListener.getResults();
     long D = System.nanoTime();
-    System.out.println(String.format("Took %f s to run query", (float)(D-C) / 1E9));
+    dummyStream.println(String.format("Took %f s to run query", (float)(D-C) / 1E9));
   }
 
 }

@@ -38,8 +38,8 @@ public class Drill2130CommonHamcrestConfigurationTest {
              + "  Got NoSuchMethodError;  e: " + e );
     }
     catch ( AssertionError e ) {
-      System.out.println( "Class path seems fine re new JUnit vs. old Hamcrest."
-                          + " (Got AssertionError, not NoSuchMethodError.)" );
+//      System.out.println( "Class path seems fine re new JUnit vs. old Hamcrest."
+//                          + " (Got AssertionError, not NoSuchMethodError.)" );
     }
   }
 

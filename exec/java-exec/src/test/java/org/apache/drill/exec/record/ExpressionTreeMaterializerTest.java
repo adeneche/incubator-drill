@@ -49,7 +49,7 @@ import com.google.common.collect.Range;
 
 public class ExpressionTreeMaterializerTest extends ExecTest {
 
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionTreeMaterializerTest.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ExpressionTreeMaterializerTest.class);
 
   final MajorType boolConstant = MajorType.newBuilder().setMode(DataMode.REQUIRED).setMinorType(MinorType.BIT).build();
   final MajorType bigIntType = MajorType.newBuilder().setMode(DataMode.REQUIRED).setMinorType(MinorType.BIGINT).build();
@@ -127,7 +127,7 @@ public class ExpressionTreeMaterializerTest extends ExecTest {
     assertEquals(bigIntType, ifCondition.expression.getMajorType());
     assertEquals(true, ((ValueExpressions.BooleanExpression) ((IfExpression)(newIfExpr.elseExpression)).ifCondition.condition).value);
     if (ec.hasErrors()) {
-      System.out.println(ec.toErrorString());
+      dummyStream.println(ec.toErrorString());
     }
     assertFalse(ec.hasErrors());
   }
@@ -203,7 +203,7 @@ public class ExpressionTreeMaterializerTest extends ExecTest {
     LogicalExpression newExpr = ExpressionTreeMaterializer.materialize(functionCallExpr, batch, ec, registry);
     assertTrue(newExpr instanceof TypedNullConstant);
     assertEquals(1, ec.getErrorCount());
-    System.out.println(ec.toErrorString());
+    dummyStream.println(ec.toErrorString());
   }
 
 }

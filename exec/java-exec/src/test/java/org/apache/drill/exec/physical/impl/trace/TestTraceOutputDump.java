@@ -68,7 +68,7 @@ import com.google.common.io.Files;
  * known value.
  */
 public class TestTraceOutputDump extends ExecTest {
-    static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestTraceOutputDump.class);
+//    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestTraceOutputDump.class);
     DrillConfig c = DrillConfig.create();
 
 
@@ -110,11 +110,11 @@ public class TestTraceOutputDump extends ExecTest {
 
         String logLocation = c.getString(ExecConstants.TRACE_DUMP_DIRECTORY);
 
-        System.out.println("Found log location: " + logLocation);
+        dummyStream.println("Found log location: " + logLocation);
 
       String filename = String.format("%s//%s_%d_%d_mock-scan", logLocation, qid, majorFragmentId, minorFragmentId);
 
-      System.out.println("File Name: " + filename);
+      dummyStream.println("File Name: " + filename);
 
         Configuration conf = new Configuration();
       conf.set(FileSystem.FS_DEFAULT_NAME_KEY, c.getString(ExecConstants.TRACE_DUMP_FILESYSTEM));

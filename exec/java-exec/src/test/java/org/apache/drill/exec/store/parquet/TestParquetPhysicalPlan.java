@@ -61,28 +61,28 @@ public class TestParquetPhysicalPlan extends ExecTest {
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       int count = 0;
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         count += b.getHeader().getRowCount();
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper vw : loader) {
-          System.out.print(vw.getValueVector().getField().toExpr() + ": ");
+          dummyStream.print(vw.getValueVector().getField().toExpr() + ": ");
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
             if (o instanceof byte[]) {
-              System.out.print(" [" + new String((byte[]) o) + "]");
+              dummyStream.print(" [" + new String((byte[]) o) + "]");
             } else {
-              System.out.print(" [" + vv.getAccessor().getObject(i) + "]");
+              dummyStream.print(" [" + vv.getAccessor().getObject(i) + "]");
             }
 //            break;
           }
-          System.out.println();
+          dummyStream.println();
         }
         loader.clear();
         b.release();
       }
       client.close();
-      System.out.println(String.format("Got %d total results", count));
+      dummyStream.println(String.format("Got %d total results", count));
     }
   }
 
@@ -104,7 +104,7 @@ public class TestParquetPhysicalPlan extends ExecTest {
     @Override
     public void dataArrived(QueryDataBatch result, ConnectionThrottle throttle) {
       int rows = result.getHeader().getRowCount();
-      System.out.println(String.format("Result batch arrived. Number of records: %d", rows));
+      dummyStream.println(String.format("Result batch arrived. Number of records: %d", rows));
       count.addAndGet(rows);
       result.release();
     }
@@ -130,7 +130,7 @@ public class TestParquetPhysicalPlan extends ExecTest {
       Stopwatch watch = new Stopwatch();
       watch.start();
       client.runQuery(org.apache.drill.exec.proto.UserBitShared.QueryType.PHYSICAL, Resources.toString(Resources.getResource(fileName),Charsets.UTF_8), listener);
-      System.out.println(String.format("Got %d total records in %d seconds", listener.await(), watch.elapsed(TimeUnit.SECONDS)));
+      dummyStream.println(String.format("Got %d total records in %d seconds", listener.await(), watch.elapsed(TimeUnit.SECONDS)));
       client.close();
     }
   }

@@ -47,13 +47,13 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestSimpleFilter extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleFilter.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleFilter.class);
   DrillConfig c = DrillConfig.create();
 
 
   @Test
   public void testFilter(@Injectable final DrillbitContext bitContext, @Injectable UserClientConnection connection) throws Throwable{
-//    System.out.println(System.getProperty("java.class.path"));
+//    dummyStream.println(System.getProperty("java.class.path"));
 
 
     new NonStrictExpectations(){{
@@ -102,7 +102,7 @@ public class TestSimpleFilter extends ExecTest {
     int recordCount = 0;
     while(exec.next()) {
       for (int i = 0; i < exec.getSelectionVector4().getCount(); i++) {
-        System.out.println("Got: " + exec.getSelectionVector4().get(i));
+        dummyStream.println("Got: " + exec.getSelectionVector4().get(i));
       }
       recordCount += exec.getSelectionVector4().getCount();
     }

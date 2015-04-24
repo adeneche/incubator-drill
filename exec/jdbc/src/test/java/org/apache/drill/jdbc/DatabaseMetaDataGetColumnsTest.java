@@ -21,7 +21,6 @@ import static org.junit.Assert.fail;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.*;
 
-import org.apache.drill.jdbc.Driver;
 import org.apache.drill.jdbc.test.JdbcAssert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -152,7 +151,7 @@ public class DatabaseMetaDataGetColumnsTest extends JdbcTest {
                                      final String tableOrViewName,
                                      final String columnName ) throws SQLException
   {
-    System.out.println( "(Setting up row for " + tableOrViewName + "." + columnName + ".)");
+    dummyStream.println( "(Setting up row for " + tableOrViewName + "." + columnName + ".)");
     assert null != dbMetadata
         : "dbMetadata is null; must be set before calling setUpRow(...)";
     final ResultSet testRow =
@@ -181,16 +180,16 @@ public class DatabaseMetaDataGetColumnsTest extends JdbcTest {
                               + "WHERE TABLE_SCHEMA = 'hive_test.default' "
                               + "  AND TABLE_NAME = 'infoschematest'" );
 
-    System.out.println( "(Hive infoschematest columns: " );
+    dummyStream.println( "(Hive infoschematest columns: " );
     int hiveTestColumnRowCount = 0;
     while ( util.next() ) {
       hiveTestColumnRowCount++;
-      System.out.println(
+      dummyStream.println(
           " Hive test column: "
           + util.getString( 1 ) + " - " + util.getString( 2 ) + " - "
           + util.getString( 3 ) + " - " + util.getString( 4 ) );
     }
-    System.out.println( " Hive test column count: " + hiveTestColumnRowCount + ")" );
+    dummyStream.println( " Hive test column count: " + hiveTestColumnRowCount + ")" );
     if ( 0 == hiveTestColumnRowCount ) {
       // No Hive test data--create it.
       new HiveTestDataGenerator().generateTestData();

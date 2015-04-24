@@ -59,7 +59,7 @@ public class PrintingResultsListener implements UserResultsListener {
   @Override
   public void submissionFailed(UserException ex) {
     exception = ex;
-    System.out.println("Exception (no rows returned): " + ex );
+    out.println("Exception (no rows returned): " + ex );
     latch.countDown();
   }
 
@@ -67,7 +67,7 @@ public class PrintingResultsListener implements UserResultsListener {
   public void queryCompleted(QueryState state) {
     allocator.close();
     latch.countDown();
-    System.out.println("Total rows returned: " + count.get());
+    out.println("Total rows returned: " + count.get());
   }
 
   @Override

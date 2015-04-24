@@ -18,6 +18,8 @@
 package org.apache.drill.common.expression.parser;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
@@ -29,6 +31,13 @@ import org.apache.drill.test.DrillTest;
 import org.junit.Test;
 
 public class TreeTest extends DrillTest {
+
+  private static final PrintStream dummyStream = new PrintStream(new OutputStream() {
+    @Override
+    public void write(int b) throws IOException {
+      // NO OP
+    }
+  });
 
   @Test
   public void testIfWithCase() throws Exception{
@@ -77,7 +86,7 @@ public class TreeTest extends DrillTest {
 
 //    tokens.fill();
 //    for(Token t : (List<Token>) tokens.getTokens()){
-//      System.out.println(t + "" + t.getType());
+//      dummyStream.println(t + "" + t.getType());
 //    }
 //    tokens.rewind();
 
@@ -103,11 +112,11 @@ public class TreeTest extends DrillTest {
    * @throws IOException
    */
   private void testExpressionParsing(String expr) throws RecognitionException, IOException{
-    System.out.println("-----" + expr + "-----");
+    dummyStream.println("-----" + expr + "-----");
     LogicalExpression e = parseExpression(expr);
 
     String newStringExpr = serializeExpression(e);
-    System.out.println(newStringExpr);
+    dummyStream.println(newStringExpr);
     LogicalExpression e2 = parseExpression(newStringExpr);
     //Assert.assertEquals(e, e2);
 

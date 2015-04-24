@@ -23,7 +23,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestClassCompilationTypes extends ExecTest{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestClassCompilationTypes.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestClassCompilationTypes.class);
 
   @Ignore @Test
   public void comparePerfs() throws Exception {
@@ -36,7 +36,7 @@ public class TestClassCompilationTypes extends ExecTest{
       long n2 = System.nanoTime();
       long janinoT = (n1 - n0)/1000;
       long jdkT = (n2 - n1)/1000;
-      System.out.println("Janino: " + janinoT + "micros.  JDK: " + jdkT + "micros. Val" + r);
+      dummyStream.println("Janino: " + janinoT + "micros.  JDK: " + jdkT + "micros. Val" + r);
     }
 
   }

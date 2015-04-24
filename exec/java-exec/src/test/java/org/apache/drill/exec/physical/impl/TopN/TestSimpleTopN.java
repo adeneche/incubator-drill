@@ -39,7 +39,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestSimpleTopN extends PopUnitTestBase {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleTopN.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleTopN.class);
   DrillConfig c = DrillConfig.create();
 
   @Test
@@ -90,7 +90,7 @@ public class TestSimpleTopN extends PopUnitTestBase {
         loader.clear();
         b.release();
       }
-      System.out.println(String.format("Sorted %,d records in %d batches.", recordCount, batchCount));
+      dummyStream.println(String.format("Sorted %,d records in %d batches.", recordCount, batchCount));
 
     }
 

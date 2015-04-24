@@ -33,6 +33,9 @@ import org.apache.drill.exec.rpc.user.QueryDataBatch;
 import org.apache.drill.exec.vector.ValueVector;
 import org.apache.hadoop.io.Text;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -53,7 +56,14 @@ import static org.junit.Assert.assertNotNull;
  * the BaseTestQuery class, and instance of the builder is accessible through the testBuilder() method.
  */
 public class DrillTestWrapper {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseTestQuery.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(BaseTestQuery.class);
+
+  private static final PrintStream dummyStream = new PrintStream(new OutputStream() {
+    @Override
+    public void write(int b) throws IOException {
+      // NO OP
+    }
+  });
 
   // TODO - when in JSON, read baseline in all text mode to avoid precision loss for decimal values
 
@@ -240,7 +250,7 @@ public class DrillTestWrapper {
             if (obj instanceof Text) {
               obj = obj.toString();
               if (obj.equals("")) {
-                System.out.println(w.getField());
+                dummyStream.println(w.getField());
               }
             }
             else if (obj instanceof byte[]) {
@@ -414,7 +424,7 @@ public class DrillTestWrapper {
             if (obj instanceof Text) {
               obj = obj.toString();
               if (obj.equals("")) {
-                System.out.println(w.getField());
+                dummyStream.println(w.getField());
               }
             }
             else if (obj instanceof byte[]) {
@@ -532,7 +542,7 @@ public class DrillTestWrapper {
       }
     }
     logger.debug(missing);
-    System.out.println(missing);
+    dummyStream.println(missing);
     assertEquals(0, actualRecords.size());
   }
 

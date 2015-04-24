@@ -66,7 +66,7 @@ import com.google.common.io.Resources;
 
 @Ignore
 public class TestOptiqPlans extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOptiqPlans.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestOptiqPlans.class);
   DrillConfig c = DrillConfig.create();
 
   @Test
@@ -133,14 +133,14 @@ public class TestOptiqPlans extends ExecTest {
           Resources.toString(Resources.getResource("physical_filter.json"), Charsets.UTF_8));
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper<?> vw : loader) {
-          System.out.println(vw.getValueVector().getField().toExpr());
+          dummyStream.println(vw.getValueVector().getField().toExpr());
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
-            System.out.println(vv.getAccessor().getObject(i));
+            dummyStream.println(vv.getAccessor().getObject(i));
           }
         }
         loader.clear();
@@ -163,14 +163,14 @@ public class TestOptiqPlans extends ExecTest {
           Resources.toString(Resources.getResource("physical_join.json"), Charsets.UTF_8));
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper<?> vw : loader) {
-          System.out.println(vw.getValueVector().getField().toExpr());
+          dummyStream.println(vw.getValueVector().getField().toExpr());
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
-            System.out.println(vv.getAccessor().getObject(i));
+            dummyStream.println(vv.getAccessor().getObject(i));
           }
         }
         loader.clear();
@@ -193,10 +193,10 @@ public class TestOptiqPlans extends ExecTest {
           Resources.toString(Resources.getResource("logical_string_filter.json"), Charsets.UTF_8));
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper<?> vw : loader) {
-          System.out.println(vw.getValueVector().getField().toExpr());
+          dummyStream.println(vw.getValueVector().getField().toExpr());
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
@@ -204,11 +204,11 @@ public class TestOptiqPlans extends ExecTest {
               VarBinaryVector.Accessor x = ((VarBinaryVector) vv).getAccessor();
               VarBinaryHolder vbh = new VarBinaryHolder();
               x.get(i, vbh);
-              System.out.printf("%d..%d", vbh.start, vbh.end);
+              dummyStream.printf("%d..%d", vbh.start, vbh.end);
 
-              System.out.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
+              dummyStream.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
             } else {
-              System.out.println(vv.getAccessor().getObject(i));
+              dummyStream.println(vv.getAccessor().getObject(i));
             }
 
           }
@@ -233,10 +233,10 @@ public class TestOptiqPlans extends ExecTest {
           Resources.toString(Resources.getResource("logical_json_scan.json"), Charsets.UTF_8));
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper vw : loader) {
-          System.out.println(vw.getValueVector().getField().toExpr());
+          dummyStream.println(vw.getValueVector().getField().toExpr());
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
@@ -244,11 +244,11 @@ public class TestOptiqPlans extends ExecTest {
               VarBinaryVector.Accessor x = ((VarBinaryVector) vv).getAccessor();
               VarBinaryHolder vbh = new VarBinaryHolder();
               x.get(i, vbh);
-              System.out.printf("%d..%d", vbh.start, vbh.end);
+              dummyStream.printf("%d..%d", vbh.start, vbh.end);
 
-              System.out.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
+              dummyStream.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
             } else {
-              System.out.println(vv.getAccessor().getObject(i));
+              dummyStream.println(vv.getAccessor().getObject(i));
             }
 
           }
@@ -273,10 +273,10 @@ public class TestOptiqPlans extends ExecTest {
           Resources.toString(Resources.getResource("physical_order_varbinary.json"), Charsets.UTF_8));
       RecordBatchLoader loader = new RecordBatchLoader(bit1.getContext().getAllocator());
       for (QueryDataBatch b : results) {
-        System.out.println(String.format("Got %d results", b.getHeader().getRowCount()));
+        dummyStream.println(String.format("Got %d results", b.getHeader().getRowCount()));
         loader.load(b.getHeader().getDef(), b.getData());
         for (VectorWrapper vw : loader) {
-          System.out.println(vw.getValueVector().getField().toExpr());
+          dummyStream.println(vw.getValueVector().getField().toExpr());
           ValueVector vv = vw.getValueVector();
           for (int i = 0; i < vv.getAccessor().getValueCount(); i++) {
             Object o = vv.getAccessor().getObject(i);
@@ -284,11 +284,11 @@ public class TestOptiqPlans extends ExecTest {
               VarBinaryVector.Accessor x = ((VarBinaryVector) vv).getAccessor();
               VarBinaryHolder vbh = new VarBinaryHolder();
               x.get(i, vbh);
-              System.out.printf("%d..%d", vbh.start, vbh.end);
+              dummyStream.printf("%d..%d", vbh.start, vbh.end);
 
-              System.out.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
+              dummyStream.println("[" + new String((byte[]) vv.getAccessor().getObject(i)) + "]");
             } else {
-              System.out.println(vv.getAccessor().getObject(i));
+              dummyStream.println(vv.getAccessor().getObject(i));
             }
 
           }

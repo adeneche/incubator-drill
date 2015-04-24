@@ -46,9 +46,8 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 public class TestSimpleUnion extends ExecTest {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleUnion.class);
-  DrillConfig c = DrillConfig.create();
-
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(TestSimpleUnion.class);
+  private DrillConfig c = DrillConfig.create();
 
   @Test
   public void testUnion(@Injectable final DrillbitContext bitContext, @Injectable UserServer.UserClientConnection connection) throws Throwable{
@@ -72,7 +71,7 @@ public class TestSimpleUnion extends ExecTest {
     int[] counts = new int[]{100,50};
     int i=0;
     while(exec.next()){
-      System.out.println("iteration count:" + exec.getRecordCount());
+      dummyStream.println("iteration count:" + exec.getRecordCount());
       assertEquals(counts[i++], exec.getRecordCount());
     }
 
