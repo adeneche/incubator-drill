@@ -367,8 +367,7 @@ public class TestDrillbitResilience extends DrillTest {
   }
 
   @Test
-  @Ignore // TODO(DRILL-3163, DRILL-3167)
-  //@Repeat(count = NUM_RUNS)
+  @Repeat(count = NUM_RUNS)
   public void foreman_runTryEnd() {
     final long before = countAllocatedMemory();
 

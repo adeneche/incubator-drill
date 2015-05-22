@@ -142,8 +142,8 @@ public class QueryManager {
 
     if (inTerminalState || (oldState == FragmentState.CANCELLATION_REQUESTED && !isTerminal(currentState))) {
       // Already in a terminal state, or invalid state transition from CANCELLATION_REQUESTED. This shouldn't happen.
-      logger.warn(String.format("Received status message for fragment %s after fragment was in state %s. New state was %s",
-        QueryIdHelper.getQueryIdentifier(fragmentHandle), oldState, currentState));
+      logger.warn("Received status message for fragment {} after fragment was in state {}. New state was {}",
+        QueryIdHelper.getQueryIdentifier(fragmentHandle), oldState, currentState);
       return false;
     }
 
@@ -202,8 +202,14 @@ public class QueryManager {
    * (2) Intermediate fragment: pending or running, send the cancel signal through a tunnel (for local and remote
    *    fragments). The actual cancel is done by delegating the cancel to the work bus.
    * (3) Leaf fragment: running, send the cancel signal through a tunnel. The cancel is done directly.
+   *
+   * @return false if there was no fragment to cancel, true otherwise
    */
-  void cancelExecutingFragments(final DrillbitContext drillbitContext) {
+  boolean cancelExecutingFragments(final DrillbitContext drillbitContext) {
+    boolean fragmentsCancelled = false;
+
+    logger.debug("cancelling {} fragments for query {}", fragmentDataSet.size(), stringQueryId);
+
     final Controller controller = drillbitContext.getController();
     for(final FragmentData data : fragmentDataSet) {
       switch(data.getState()) {
@@ -215,6 +221,7 @@ public class QueryManager {
         // TODO is the CancelListener redundant? Does the FragmentStatusListener get notified of the same?
         controller.getTunnel(endpoint).cancelFragment(new SignalListener(endpoint, handle,
             SignalListener.Signal.CANCEL), handle);
+        fragmentsCancelled = true;
         break;
 
       case FINISHED:
@@ -225,6 +232,8 @@ public class QueryManager {
         break;
       }
     }
+
+    return fragmentsCancelled;
   }
 
   /**
@@ -283,6 +292,7 @@ public class QueryManager {
     switch (queryState) {
       case PENDING:
       case RUNNING:
+      case FAILING:
       case CANCELLATION_REQUESTED:
         profileEStore.put(stringQueryId, getQueryInfo());  // store as ephemeral query profile.
         break;
