@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.drill.common.exceptions.ExecutionSetupException;
+import org.apache.drill.exec.memory.OutOfMemoryRuntimeException;
 import org.apache.drill.exec.store.parquet.ColumnDataReader;
 import org.apache.drill.exec.store.parquet.DirectCodecFactory;
 import org.apache.drill.exec.store.parquet.DirectCodecFactory.ByteBufBytesInput;
@@ -301,13 +302,20 @@ final class PageReader {
   private void allocatePageData(int size) {
     Preconditions.checkArgument(pageData == null);
     pageData = parentColumnReader.parentReader.getOperatorContext().getAllocator().buffer(size);
+    if (pageData == null) {
+      throw new OutOfMemoryRuntimeException(String.format("Failure allocating page data of %d bytes", size));
+    }
   }
 
   /**
    * Allocate a buffer which the user should release immediately. The reader does not manage release of these buffers.
    */
   private DrillBuf allocateTemporaryBuffer(int size) {
-    return parentColumnReader.parentReader.getOperatorContext().getAllocator().buffer(size);
+    final DrillBuf buf = parentColumnReader.parentReader.getOperatorContext().getAllocator().buffer(size);
+    if (buf == null) {
+      throw new OutOfMemoryRuntimeException(String.format("Failure allocating temporary buffer of %d bytes", size));
+    }
+    return buf;
   }
 
   /**
@@ -316,6 +324,9 @@ final class PageReader {
    */
   private DrillBuf allocateDictionaryBuffer(int size) {
     DrillBuf buf = parentColumnReader.parentReader.getOperatorContext().getAllocator().buffer(size);
+    if (buf == null) {
+      throw new OutOfMemoryRuntimeException(String.format("Failure allocating dictionary buffer of %d bytes", size));
+    }
     allocatedDictionaryBuffers.add(buf);
     return buf;
   }
