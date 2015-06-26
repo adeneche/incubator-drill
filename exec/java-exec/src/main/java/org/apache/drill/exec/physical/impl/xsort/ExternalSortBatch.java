@@ -406,7 +406,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         batchGroups.addAll(spilledBatchGroups);
         logger.warn("Starting to merge. {} batch groups. Current allocated memory: {}", batchGroups.size(), oContext.getAllocator().getAllocatedMemory());
         VectorContainer hyperBatch = constructHyperBatch(batchGroups);
-        createCopier(hyperBatch, batchGroups, container);
+        createCopier(hyperBatch, batchGroups, container, false);
 
         int estimatedRecordSize = 0;
         for (VectorWrapper w : batchGroups.get(0)) {
@@ -474,7 +474,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     }
     int targetRecordCount = Math.max(1, 250 * 1000 / estimatedRecordSize);
     VectorContainer hyperBatch = constructHyperBatch(batchGroupList);
-    createCopier(hyperBatch, batchGroupList, outputContainer);
+    createCopier(hyperBatch, batchGroupList, outputContainer, true);
 
     int count = copier.next(targetRecordCount);
     assert count > 0;
@@ -673,7 +673,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     g.getEvalBlock()._return(JExpr.lit(0));
   }
 
-  private void createCopier(VectorAccessible batch, List<BatchGroup> batchGroupList, VectorContainer outputContainer) throws SchemaChangeException {
+  private void createCopier(VectorAccessible batch, List<BatchGroup> batchGroupList, VectorContainer outputContainer, boolean merging) throws SchemaChangeException {
     try {
       if (copier == null) {
         CodeGenerator<PriorityQueueCopier> cg = CodeGenerator.get(PriorityQueueCopier.TEMPLATE_DEFINITION, context.getFunctionRegistry());
@@ -693,7 +693,8 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         ValueVector v = TypeHelper.getNewVector(i.getField(), copierAllocator);
         outputContainer.add(v);
       }
-      copier.setup(context, copierAllocator, batch, batchGroupList, outputContainer);
+      BufferAllocator allocator = merging? copierAllocator : oContext.getAllocator();
+      copier.setup(context, allocator, batch, batchGroupList, outputContainer);
     } catch (ClassTransformationException e) {
       throw new RuntimeException(e);
     } catch (IOException e) {
