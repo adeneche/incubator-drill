@@ -673,7 +673,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     g.getEvalBlock()._return(JExpr.lit(0));
   }
 
-  private void createCopier(VectorAccessible batch, List<BatchGroup> batchGroupList, VectorContainer outputContainer, boolean merging) throws SchemaChangeException {
+  private void createCopier(VectorAccessible batch, List<BatchGroup> batchGroupList, VectorContainer outputContainer, boolean spelling) throws SchemaChangeException {
     try {
       if (copier == null) {
         CodeGenerator<PriorityQueueCopier> cg = CodeGenerator.get(PriorityQueueCopier.TEMPLATE_DEFINITION, context.getFunctionRegistry());
@@ -689,11 +689,11 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
         copier.cleanup();
       }
 
+      BufferAllocator allocator = spelling ? copierAllocator : oContext.getAllocator();
       for (VectorWrapper<?> i : batch) {
-        ValueVector v = TypeHelper.getNewVector(i.getField(), copierAllocator);
+        ValueVector v = TypeHelper.getNewVector(i.getField(), allocator);
         outputContainer.add(v);
       }
-      BufferAllocator allocator = merging? copierAllocator : oContext.getAllocator();
       copier.setup(context, allocator, batch, batchGroupList, outputContainer);
     } catch (ClassTransformationException e) {
       throw new RuntimeException(e);
