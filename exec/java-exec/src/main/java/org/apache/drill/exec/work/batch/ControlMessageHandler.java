@@ -65,8 +65,11 @@ public class ControlMessageHandler {
 
     case RpcType.REQ_CANCEL_FRAGMENT_VALUE: {
       final FragmentHandle handle = get(pBody, FragmentHandle.PARSER);
-      cancelFragment(handle);
-      return ControlRpcConfig.OK;
+      if (cancelFragment(handle) == Acks.OK) {
+        return ControlRpcConfig.OK;
+      } else {
+        return ControlRpcConfig.FAIL;
+      }
     }
 
     case RpcType.REQ_RECEIVER_FINISHED_VALUE: {
@@ -182,8 +185,8 @@ public class ControlMessageHandler {
     //     request; it is possible that before the fragment state was updated in the QueryManager, this handler
     //     received a cancel signal.
     // (2) Unknown fragment.
-    logger.warn("Dropping request to cancel fragment. {} does not exist.", QueryIdHelper.getQueryIdentifier(handle));
-    return Acks.OK;
+    logger.warn("Failed to cancel fragment. {} does not exist.", QueryIdHelper.getQueryIdentifier(handle));
+    return Acks.FAIL;
   }
 
   private Ack resumeFragment(final FragmentHandle handle) {

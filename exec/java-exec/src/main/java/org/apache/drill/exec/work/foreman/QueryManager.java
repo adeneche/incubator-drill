@@ -35,6 +35,7 @@ import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
 import org.apache.drill.exec.proto.SchemaUserBitShared;
+import org.apache.drill.exec.proto.UserBitShared;
 import org.apache.drill.exec.proto.UserBitShared.FragmentState;
 import org.apache.drill.exec.proto.UserBitShared.MajorFragmentProfile;
 import org.apache.drill.exec.proto.UserBitShared.QueryId;
@@ -154,6 +155,7 @@ public class QueryManager {
   private void fragmentDone(final FragmentStatus status) {
     final boolean stateChanged = updateFragmentStatus(status);
 
+    logger.debug("fragmentDone({}). stateChanged = {}", status, stateChanged);
     if (stateChanged) {
       // since we're in the fragment done clause and this was a change from previous
       final NodeTracker node = nodeMap.get(status.getProfile().getEndpoint());
@@ -222,7 +224,7 @@ public class QueryManager {
         final FragmentHandle handle = data.getHandle();
         final DrillbitEndpoint endpoint = data.getEndpoint();
         // TODO is the CancelListener redundant? Does the FragmentStatusListener get notified of the same?
-        controller.getTunnel(endpoint).cancelFragment(new SignalListener(endpoint, handle,
+        controller.getTunnel(endpoint).cancelFragment(new SignalListener(this, endpoint, handle,
             SignalListener.Signal.CANCEL), handle);
         break;
 
@@ -247,7 +249,7 @@ public class QueryManager {
     for(final FragmentData data : fragmentDataSet) {
       final DrillbitEndpoint endpoint = data.getEndpoint();
       final FragmentHandle handle = data.getHandle();
-      controller.getTunnel(endpoint).unpauseFragment(new SignalListener(endpoint, handle,
+      controller.getTunnel(endpoint).unpauseFragment(new SignalListener(this, endpoint, handle,
         SignalListener.Signal.UNPAUSE), handle);
     }
   }
@@ -261,18 +263,36 @@ public class QueryManager {
     /**
      * An enum of possible signals that {@link SignalListener} listens to.
      */
-    public static enum Signal { CANCEL, UNPAUSE }
+    public enum Signal { CANCEL, UNPAUSE }
 
     private final Signal signal;
 
-    public SignalListener(final DrillbitEndpoint endpoint, final FragmentHandle handle, final Signal signal) {
+    private final QueryManager queryManager;
+
+    public SignalListener(final QueryManager queryManager, final DrillbitEndpoint endpoint, final FragmentHandle handle, final Signal signal) {
       super(endpoint, handle);
       this.signal = signal;
+      this.queryManager = queryManager;
     }
 
     @Override
     public void failed(final RpcException ex) {
       logger.error("Failure while attempting to {} fragment {} on endpoint {} with {}.", signal, value, endpoint, ex);
+      // RPC layer failed to send the signal to the endpoint
+      // the QueryManager should mark the fragment done otherwise the foreman may wait indefinitely for it to finish
+      queryManager.fragmentDone(getFailedStatus());
+    }
+
+    private FragmentStatus getFailedStatus(){
+      final UserBitShared.MinorFragmentProfile f = UserBitShared.MinorFragmentProfile.newBuilder()
+        .setState(FragmentState.FAILED)
+        .setMinorFragmentId(value.getMinorFragmentId())
+        .setEndpoint(endpoint)
+        .build();
+      return FragmentStatus.newBuilder()
+        .setHandle(value)
+        .setProfile(f)
+        .build();
     }
 
     @Override
@@ -280,6 +300,9 @@ public class QueryManager {
       if (!ack.getOk()) {
         logger.warn("Remote node {} responded negative on {} request for fragment {} with {}.", endpoint, signal, value,
           ack);
+        // Endpoint reported it couldn't pass the signal to the fragment,
+        // the QueryManager should mark the fragment done otherwise the foreman may wait indefinitely for it to finish
+        queryManager.fragmentDone(getFailedStatus());
       }
     }
 
@@ -287,6 +310,9 @@ public class QueryManager {
     public void interrupted(final InterruptedException ex) {
       logger.error("Interrupted while waiting for RPC outcome of action fragment {}. " +
           "Endpoint {}, Fragment handle {}", signal, endpoint, value, ex);
+      // RPC thread was interrupted while sending the signal to the fragment,
+      // the QueryManager should mark the fragment done otherwise the foreman may wait indefinitely for it to finish
+      queryManager.fragmentDone(getFailedStatus());
     }
   }
 
