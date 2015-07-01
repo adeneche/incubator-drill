@@ -93,12 +93,12 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements F
       allocationMonitor = 0;
     }
 
-    DrillBuf newBuf = allocator.buffer(allocationValueCount * ${type.width});
-    if(newBuf == null) {
+    try {
+      this.data = allocator.buffer(allocationValueCount * ${type.width});
+    } catch (OutOfMemoryRuntimeException e) {
       return false;
     }
 
-    this.data = newBuf;
     this.data.readerIndex(0);
     return true;
   }
@@ -111,13 +111,8 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements F
   public void allocateNew(int valueCount) {
     clear();
 
-    DrillBuf newBuf = allocator.buffer(valueCount * ${type.width});
-    if (newBuf == null) {
-      throw new OutOfMemoryRuntimeException(
-        String.format("Failure while allocating buffer of %d bytes",valueCount * ${type.width}));
-    }
+    this.data = allocator.buffer(valueCount * ${type.width});
 
-    this.data = newBuf;
     this.data.readerIndex(0);
     this.allocationValueCount = valueCount;
   }
@@ -131,10 +126,6 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements F
     logger.info("Realloc vector {}. [{}] -> [{}]", field, allocationValueCount * ${type.width}, allocationValueCount * 2 * ${type.width});
     allocationValueCount *= 2;
     DrillBuf newBuf = allocator.buffer(allocationValueCount * ${type.width});
-    if (newBuf == null) {
-      throw new OutOfMemoryRuntimeException(
-      String.format("Failure while reallocating buffer to %d bytes",allocationValueCount * ${type.width}));
-    }
 
     newBuf.setBytes(0, data, 0, data.capacity());
     newBuf.setZero(newBuf.capacity() / 2, newBuf.capacity() / 2);
