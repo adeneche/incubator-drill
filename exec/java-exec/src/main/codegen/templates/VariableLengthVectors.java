@@ -291,21 +291,12 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements V
      * buffers for multiple vectors. If one of the allocations failed we need to
      * clear all the memory that we allocated
      */
-    boolean success = false;
     try {
-      DrillBuf newBuf = allocator.buffer(allocationTotalByteCount);
-      if (newBuf == null) {
-        return false;
-      }
-      this.data = newBuf;
-      if (!offsetVector.allocateNewSafe()) {
-        return false;
-      }
-      success = true;
-    } finally {
-      if (!success) {
-        clear();
-      }
+      this.data = allocator.buffer(allocationTotalByteCount);
+      offsetVector.allocateNew();
+    } catch (OutOfMemoryRuntimeException e) {
+      clear();
+      return false;
     }
     data.readerIndex(0);
     offsetVector.zeroVector();
@@ -316,11 +307,7 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements V
     clear();
     assert totalBytes >= 0;
     try {
-      DrillBuf newBuf = allocator.buffer(totalBytes);
-      if (newBuf == null) {
-        throw new OutOfMemoryRuntimeException(String.format("Failure while allocating buffer of %d bytes", totalBytes));
-      }
-      this.data = newBuf;
+      this.data = allocator.buffer(totalBytes);
       offsetVector.allocateNew(valueCount + 1);
     } catch (OutOfMemoryRuntimeException e) {
       clear();
@@ -331,18 +318,14 @@ public final class ${minor.class}Vector extends BaseDataValueVector implements V
     offsetVector.zeroVector();
   }
 
-    public void reAlloc() {
-      allocationTotalByteCount *= 2;
-      DrillBuf newBuf = allocator.buffer(allocationTotalByteCount);
-      if(newBuf == null){
-        throw new OutOfMemoryRuntimeException(
-          String.format("Failure while reallocating buffer of %d bytes", allocationTotalByteCount));
-      }
+  public void reAlloc() {
+    allocationTotalByteCount *= 2;
+    DrillBuf newBuf = allocator.buffer(allocationTotalByteCount);
 
-      newBuf.setBytes(0, data, 0, data.capacity());
-      data.release();
-      data = newBuf;
-    }
+    newBuf.setBytes(0, data, 0, data.capacity());
+    data.release();
+    data = newBuf;
+  }
 
   public void decrementAllocationMonitor() {
     if (allocationMonitor > 0) {
