@@ -206,10 +206,7 @@ public class QueryManager {
    * @return false if there was no fragment to cancel, true otherwise
    */
   boolean cancelExecutingFragments(final DrillbitContext drillbitContext) {
-    if (fragmentDataSet.isEmpty()) {
-      logger.debug("No fragment to cancel");
-      return false;
-    }
+    boolean fragmentsCancelled = false;
 
     logger.debug("cancelling {} fragments", fragmentDataSet.size());
 
@@ -224,6 +221,7 @@ public class QueryManager {
         // TODO is the CancelListener redundant? Does the FragmentStatusListener get notified of the same?
         controller.getTunnel(endpoint).cancelFragment(new SignalListener(endpoint, handle,
             SignalListener.Signal.CANCEL), handle);
+        fragmentsCancelled = true;
         break;
 
       case FINISHED:
@@ -235,7 +233,7 @@ public class QueryManager {
       }
     }
 
-    return true;
+    return fragmentsCancelled;
   }
 
   /**

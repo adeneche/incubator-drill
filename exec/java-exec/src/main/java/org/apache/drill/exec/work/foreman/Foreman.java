@@ -127,6 +127,8 @@ public class Foreman implements Runnable {
 
   private FragmentExecutor rootRunner; // root Fragment
 
+  private boolean nonRootFragmentsSent; // true if no error occurred in setupNonRootFragments
+
   private final ExtendedLatch acceptExternalEvents = new ExtendedLatch(); // gates acceptance of external events
   private final StateListener stateListener = new StateListener(); // source of external events
   private final ResponseSendListener responseListener = new ResponseSendListener();
@@ -834,9 +836,11 @@ public class Foreman implements Runnable {
           assert exception != null;
           queryManager.markEndTime();
           foremanResult.setFailed(exception);
-          if (queryManager.cancelExecutingFragments(drillbitContext)) {
+          if (queryManager.cancelExecutingFragments(drillbitContext) && nonRootFragmentsSent) {
             recordNewState(QueryState.FAILING);
           } else {
+            // if an error occurred while setting up the non root fragments we don't wait for fragments to finish
+            // this is not a perfect solution, but will help us avoid waiting for non-existing fragments forever
             recordNewState(QueryState.FAILED);
             foremanResult.close();
           }
@@ -1026,6 +1030,7 @@ public class Foreman implements Runnable {
 
       for (FragmentSubmitFailures.SubmissionException e : fragmentSubmitFailures.submissionExceptions) {
         DrillbitEndpoint endpoint = e.drillbitEndpoint;
+
         if (endpoints.add(endpoint)) {
           if (first) {
             first = false;
@@ -1049,6 +1054,8 @@ public class Foreman implements Runnable {
     for (final DrillbitEndpoint ep : leafFragmentMap.keySet()) {
       sendRemoteFragments(ep, leafFragmentMap.get(ep), null, null);
     }
+
+    nonRootFragmentsSent = true;
   }
 
   /**
