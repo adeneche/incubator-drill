@@ -20,6 +20,7 @@ package org.apache.drill.exec.physical.impl.xsort;
 import io.netty.buffer.DrillBuf;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -153,17 +154,27 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     return sv4;
   }
 
+  private void cleanupBatchGroups(Collection<BatchGroup> groups) {
+    for (BatchGroup group: groups) {
+      try {
+        group.cleanup();
+      } catch (IOException e) {
+        // collect all failure and make sure to cleanup all remaining batches
+        context.fail(e);
+      }
+    }
+  }
+
   @Override
   public void close() {
     try {
       if (batchGroups != null) {
-        for (BatchGroup group: batchGroups) {
-          try {
-            group.cleanup();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        }
+        cleanupBatchGroups(batchGroups);
+        batchGroups = null;
+      }
+      if (spilledBatchGroups != null) {
+        cleanupBatchGroups(spilledBatchGroups);
+        spilledBatchGroups = null;
       }
     } finally {
       if (builder != null) {
