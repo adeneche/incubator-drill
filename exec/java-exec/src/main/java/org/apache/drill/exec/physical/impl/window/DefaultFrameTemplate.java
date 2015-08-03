@@ -89,7 +89,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       } else {
         final int length = computePartitionSize(currentRow);
         partition = new Partition(length);
-        setupWrite(current, container);
+        setupOutputRow(current, container);
       }
 
       currentRow = processPartition(currentRow);
@@ -126,21 +126,38 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   private int processPartition(final int currentRow) throws DrillException {
     logger.trace("process partition {}, currentRow: {}, outputCount: {}", partition, currentRow, outputCount);
 
+    setupCopyNext(getCurrent(), container);
+
     int row = currentRow;
-    while (row < outputCount && !partition.isDone()) {
-      if (partition.isFrameDone()) {
-        // because all peer rows share the same frame, we only need to compute and aggregate the frame once
-        partition.newFrame(countPeers(row));
-        aggregatePeers(row);
+    while (row < (outputCount - 1) && !partition.isDone()) {
+      processRow(row);
+      copyNext(row + 1, row);
+      row++;
+    }
+
+    // handle last row separately, because of copyNext()
+    if (!partition.isDone()) {
+      processRow(row);
+      if (batches.size() > 1) {
+        setupCopyNext(batches.get(1), container);
+        copyNext(0, row);
       }
-
-      outputAggregatedValues(row, partition);
-
-      partition.rowAggregated();
       row++;
     }
 
     return row;
+  }
+
+  private void processRow(final int row) throws DrillException {
+    if (partition.isFrameDone()) {
+      // because all peer rows share the same frame, we only need to compute and aggregate the frame once
+      partition.newFrame(countPeers(row));
+      aggregatePeers(row);
+    }
+
+    outputRow(row, partition);
+
+    partition.rowAggregated();
   }
 
   /**
@@ -213,18 +230,18 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     // start processing first batch and, if necessary, move to next batches
     Iterator<WindowDataBatch> iterator = batches.iterator();
     WindowDataBatch current = iterator.next();
-    setupRead(current, container);
+    setupEvaluatePeer(current, container);
 
     final int peers = partition.getPeers();
     for (int i = 0, row = currentRow; i < peers; i++, row++) {
       if (row >= current.getRecordCount()) {
         // we reached the end of the current batch, move to the next one
         current = iterator.next();
-        setupRead(current, container);
+        setupEvaluatePeer(current, container);
         row = 0;
       }
 
-      aggregateRecord(row);
+      evaluatePeer(row);
     }
   }
 
@@ -263,32 +280,33 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     return outputCount;
   }
 
+  // we need this abstract method for code generation
   @Override
-  public void cleanup() {
-  }
+  public abstract void cleanup();
 
   /**
-   * setup incoming container for aggregateRecord()
-   */
-  public abstract void setupRead(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
-
-  /**
-   * setup outgoing container for outputAggregatedValues. This will also reset the aggregations in most cases.
-   */
-  public abstract void setupWrite(@Named("incoming") WindowDataBatch incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
-
-  /**
-   * aggregates a row from the incoming container
+   * called once for each peer row of the current frame.
    * @param index of row to aggregate
    */
-  public abstract void aggregateRecord(@Named("index") int index);
+  public abstract void evaluatePeer(@Named("index") int index);
+  public abstract void setupEvaluatePeer(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
 
   /**
-   * writes aggregated values to row of outgoing container
+   * called once for each row after we do all computations for that row. Used mostly to write any computed/aggregated
+   * value to it's corresponding column
    * @param outIndex index of row
    */
-  public abstract void outputAggregatedValues(@Named("outIndex") int outIndex, @Named("partition") Partition partition);
+  public abstract void outputRow(@Named("outIndex") int outIndex, @Named("partition") Partition partition);
+  public abstract void setupOutputRow(@Named("incoming") WindowDataBatch incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
 
+  /**
+   * copies value(s) from inIndex row to outIndex row. Mostly used by LEAD. inIndex always points to the row next to
+   * outIndex
+   * @param inIndex source row of the copy
+   * @param outIndex destination row of the copy.
+   */
+  public abstract void copyNext(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex);
+  public abstract void setupCopyNext(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
   /**
    * reset all window functions
    */
