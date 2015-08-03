@@ -129,21 +129,26 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     setupCopyNext(getCurrent(), container);
 
     int row = currentRow;
-    while (row < (outputCount - 1) && !partition.isDone()) {
+    // process all rows except the last one of the batch/partition
+    while (row < (outputCount - 1) && !partition.isLastRow()) {
       processRow(row);
       copyNext(row + 1, row);
       row++;
     }
 
-    // handle last row separately, because of copyNext()
-    if (!partition.isDone()) {
-      processRow(row);
-      if (batches.size() > 1) {
-        setupCopyNext(batches.get(1), container);
-        copyNext(0, row);
-      }
-      row++;
+    // did we reach the end of the partition, if this is the case we won't need to call copyNext()
+    final boolean lastRow = partition.isLastRow();
+
+    // process last line of current batch/partition
+    processRow(row);
+
+    // if we didn't reach the end of partition yet, copy next value onto the current one
+    if (!lastRow && batches.size() > 1) {
+      setupCopyNext(batches.get(1), container);
+      copyNext(0, row);
     }
+
+    row++;
 
     return row;
   }
