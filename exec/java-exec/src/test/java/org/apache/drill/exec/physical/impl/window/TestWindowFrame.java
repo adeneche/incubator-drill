@@ -146,4 +146,26 @@ public class TestWindowFrame extends BaseTestQuery {
     test(getFile("window/q3220.sql"), TEST_RES_PATH);
   }
 
+  @Test
+  public void testLead() throws Exception {
+    testBuilder()
+      .sqlQuery(getFile("window/lead.oby.sql"), TEST_RES_PATH)
+      .ordered()
+      .csvBaselineFile("window/b4.p4.lead.oby.tsv")
+      .baselineColumns("position_id", "sub", "employee_id", "line_no", "lead")
+      .build()
+      .run();
+  }
+
+  @Test
+  public void testLeadWithPby() throws Exception {
+    testBuilder()
+      .sqlQuery(getFile("window/lead.pby.oby.sql"), TEST_RES_PATH)
+      .ordered()
+      .csvBaselineFile("window/b4.p4.lead.pby.oby.tsv")
+      .baselineColumns("position_id", "sub", "employee_id", "line_no", "lead")
+      .build()
+      .run();
+  }
+
 }
