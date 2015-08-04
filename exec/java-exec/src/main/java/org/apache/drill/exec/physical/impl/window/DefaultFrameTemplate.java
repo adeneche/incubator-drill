@@ -126,13 +126,22 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   private int processPartition(final int currentRow) throws DrillException {
     logger.trace("process partition {}, currentRow: {}, outputCount: {}", partition, currentRow, outputCount);
 
-    setupCopyNext(getCurrent(), container);
+    final VectorAccessible current = getCurrent();
+    setupCopyNext(current, container);
+    setupCopyPrev(current, container);
 
     int row = currentRow;
+
+    // process first row of batch
+    processRow(row);
+    copyNext(row + 1, row);
+    row++;
+
     // process all rows except the last one of the batch/partition
     while (row < (outputCount - 1) && !partition.isLastRow()) {
       processRow(row);
       copyNext(row + 1, row);
+      copyPrev(row - 1, row);
       row++;
     }
 
@@ -141,6 +150,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
     // process last line of current batch/partition
     processRow(row);
+    copyPrev(row - 1, row);
 
     // if we didn't reach the end of partition yet, copy next value onto the current one
     if (!lastRow && batches.size() > 1) {
@@ -297,12 +307,14 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   public abstract void setupEvaluatePeer(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
 
   /**
-   * called once for each row after we do all computations for that row. Used mostly to write any computed/aggregated
-   * value to it's corresponding column
+   * called once for each row after we evaluate all peer rows. Used to write a value in the row
+   *
    * @param outIndex index of row
+   * @param partition object used by "computed" window functions
    */
   public abstract void outputRow(@Named("outIndex") int outIndex, @Named("partition") Partition partition);
-  public abstract void setupOutputRow(@Named("incoming") WindowDataBatch incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
+  public abstract void setupOutputRow(@Named("incoming") WindowDataBatch incoming, @Named("outgoing") VectorAccessible outgoing)
+    throws SchemaChangeException;
 
   /**
    * copies value(s) from inIndex row to outIndex row. Mostly used by LEAD. inIndex always points to the row next to
@@ -312,6 +324,16 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    */
   public abstract void copyNext(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex);
   public abstract void setupCopyNext(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
+
+  /**
+   * copies value(s) from inIndex row to outIndex row. Mostly used by LAG. inIndex always points to the previous row
+   *
+   * @param inIndex source row of the copy
+   * @param outIndex destination row of the copy.
+   */
+  public abstract void copyPrev(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex);
+  public abstract void setupCopyPrev(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
+
   /**
    * reset all window functions
    */

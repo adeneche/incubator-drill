@@ -82,7 +82,8 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     DENSE_RANK(false),
     PERCENT_RANK(true),
     CUME_DIST(true),
-    LEAD(false);
+    LEAD(false),
+    LAG(false);
 
     private final boolean useDouble;
 
@@ -258,10 +259,11 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     logger.trace("creating framer");
 
     final List<LogicalExpression> aggExprs = Lists.newArrayList();
-    final Map<WindowFunction, TypedFieldId> winExprs = Maps.newHashMap();
+    final Map<WindowFunction, TypedFieldId> computedExprs = Maps.newHashMap();
     final List<LogicalExpression> keyExprs = Lists.newArrayList();
     final List<LogicalExpression> orderExprs = Lists.newArrayList();
     final List<LogicalExpression> leadExprs = Lists.newArrayList();
+    final List<LogicalExpression> lagExprs = Lists.newArrayList();
     final ErrorCollector collector = new ErrorCollectorImpl();
 
     container.clear();
@@ -298,6 +300,26 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
           // write copied value into container
           final TypedFieldId id = container.getValueVectorId(vv.getField().getPath());
           leadExprs.add(new ValueVectorWriteExpression(id, source));
+        } else if (wf == WindowFunction.LAG) {
+          // read copied value from saved batch
+          final LogicalExpression source = ExpressionTreeMaterializer.materialize(call.args.get(0), batch,
+            collector, context.getFunctionRegistry());
+
+          // make sure window function vector type is Nullable, because we will write a null value in the first row
+          // of each partition
+          TypeProtos.MajorType majorType = source.getMajorType();
+          if (majorType.getMode() == TypeProtos.DataMode.REQUIRED) {
+            majorType = Types.optional(majorType.getMinorType());
+          }
+
+          // add corresponding ValueVector to container
+          final MaterializedField outputField = MaterializedField.create(ne.getRef(), majorType);
+          ValueVector vv = container.addOrGet(outputField);
+          vv.allocateNew();
+
+          // write copied value into container
+          final TypedFieldId id = container.getValueVectorId(vv.getField().getPath());
+          lagExprs.add(new ValueVectorWriteExpression(id, source));
         } else {
 
           // add corresponding ValueVector to container
@@ -305,7 +327,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
           ValueVector vv = container.addOrGet(outputField);
           vv.allocateNew();
 
-          winExprs.put(wf, container.getValueVectorId(ne.getRef()));
+          computedExprs.put(wf, container.getValueVectorId(ne.getRef()));
         }
       } else {
         // evaluate expression over saved batch
@@ -360,9 +382,10 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       setupIsFunction(cg, orderExprs, isaP1, isaP2);
     }
 
-    generateOutputRow(cg, aggExprs);
-    generateComputedWindowFunctions(cg, winExprs);
+    generateAggregations(cg, aggExprs);
+    generateComputedWindowFunctions(cg, computedExprs);
     generateCopyNext(cg, leadExprs);
+    generateCopyPrev(cg, lagExprs);
 
     cg.getBlock("resetValues")._return(JExpr.TRUE);
 
@@ -394,9 +417,9 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   }
 
   /**
-   * setup for evaluatePeer() and outputRow()
+   * setup for aggregate window functions
    */
-  private void generateOutputRow(ClassGenerator<WindowFramer> cg, List<LogicalExpression> valueExprs) {
+  private void generateAggregations(ClassGenerator<WindowFramer> cg, List<LogicalExpression> valueExprs) {
     final GeneratorMapping EVAL_INSIDE = GeneratorMapping.create("setupEvaluatePeer", "evaluatePeer", null, null);
     final GeneratorMapping EVAL_OUTSIDE = GeneratorMapping.create("setupOutputRow", "outputRow", "resetValues", "cleanup");
     final MappingSet eval = new MappingSet("index", "outIndex", EVAL_INSIDE, EVAL_OUTSIDE, EVAL_INSIDE);
@@ -424,8 +447,24 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     }
   }
 
+  /**
+   * setup for LEAD window functions
+   */
   private void generateCopyNext(final ClassGenerator<WindowFramer> cg, final List<LogicalExpression> valueExprs) {
     final GeneratorMapping mapping = GeneratorMapping.create("setupCopyNext", "copyNext", null, null);
+    final MappingSet eval = new MappingSet("inIndex", "outIndex", mapping, mapping);
+
+    cg.setMappingSet(eval);
+    for (LogicalExpression expr : valueExprs) {
+      cg.addExpr(expr);
+    }
+  }
+
+  /**
+   * setup for LAG window functions
+   */
+  private void generateCopyPrev(final ClassGenerator<WindowFramer> cg, final List<LogicalExpression> valueExprs) {
+    final GeneratorMapping mapping = GeneratorMapping.create("setupCopyPrev", "copyPrev", null, null);
     final MappingSet eval = new MappingSet("inIndex", "outIndex", mapping, mapping);
 
     cg.setMappingSet(eval);
