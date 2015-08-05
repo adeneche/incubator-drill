@@ -41,6 +41,7 @@ import org.apache.drill.exec.exception.SchemaChangeException;
 import org.apache.drill.exec.expr.ClassGenerator;
 import org.apache.drill.exec.expr.CodeGenerator;
 import org.apache.drill.exec.expr.ExpressionTreeMaterializer;
+import org.apache.drill.exec.expr.ValueVectorReadExpression;
 import org.apache.drill.exec.expr.ValueVectorWriteExpression;
 import org.apache.drill.exec.expr.fn.FunctionGenerationHelper;
 import org.apache.drill.exec.memory.OutOfMemoryException;
@@ -193,7 +194,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
           }
         case OK:
           if (incoming.getRecordCount() > 0) {
-            batches.add(new WindowDataBatch(incoming, context));
+            batches.add(new WindowDataBatch(incoming, oContext));
           } else {
             logger.trace("incoming has 0 records, it won't be added to batches");
           }
@@ -249,7 +250,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     }
 
     if (incoming.getRecordCount() > 0) {
-      batches.add(new WindowDataBatch(incoming, getContext()));
+      batches.add(new WindowDataBatch(incoming, oContext));
     }
   }
 
@@ -264,6 +265,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     final List<LogicalExpression> orderExprs = Lists.newArrayList();
     final List<LogicalExpression> leadExprs = Lists.newArrayList();
     final List<LogicalExpression> lagExprs = Lists.newArrayList();
+    final List<LogicalExpression> internalExprs = Lists.newArrayList();
     final ErrorCollector collector = new ErrorCollectorImpl();
 
     container.clear();
@@ -299,7 +301,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
           // write copied value into container
           final TypedFieldId id = container.getValueVectorId(vv.getField().getPath());
-          leadExprs.add(new ValueVectorWriteExpression(id, source));
+          leadExprs.add(new ValueVectorWriteExpression(id, source, true));
         } else if (wf == WindowFunction.LAG) {
           // read copied value from saved batch
           final LogicalExpression source = ExpressionTreeMaterializer.materialize(call.args.get(0), batch,
@@ -319,7 +321,9 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
           // write copied value into container
           final TypedFieldId id = container.getValueVectorId(vv.getField().getPath());
-          lagExprs.add(new ValueVectorWriteExpression(id, source));
+          lagExprs.add(new ValueVectorWriteExpression(id, source, true));
+
+          internalExprs.add(new ValueVectorWriteExpression(id, new ValueVectorReadExpression(id), true));
         } else {
 
           // add corresponding ValueVector to container
@@ -386,11 +390,12 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     generateComputedWindowFunctions(cg, computedExprs);
     generateCopyNext(cg, leadExprs);
     generateCopyPrev(cg, lagExprs);
+    generateCopyFromInternal(cg, internalExprs);
 
     cg.getBlock("resetValues")._return(JExpr.TRUE);
 
     WindowFramer framer = context.getImplementationClass(cg);
-    framer.setup(batches, container);
+    framer.setup(batches, container, oContext);
 
     return framer;
   }
@@ -465,6 +470,16 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
    */
   private void generateCopyPrev(final ClassGenerator<WindowFramer> cg, final List<LogicalExpression> valueExprs) {
     final GeneratorMapping mapping = GeneratorMapping.create("setupCopyPrev", "copyPrev", null, null);
+    final MappingSet eval = new MappingSet("inIndex", "outIndex", mapping, mapping);
+
+    cg.setMappingSet(eval);
+    for (LogicalExpression expr : valueExprs) {
+      cg.addExpr(expr);
+    }
+  }
+
+  private void generateCopyFromInternal(final ClassGenerator<WindowFramer> cg, final List<LogicalExpression> valueExprs) {
+    final GeneratorMapping mapping = GeneratorMapping.create("setupCopyFromInternal", "copyFromInternal", null, null);
     final MappingSet eval = new MappingSet("inIndex", "outIndex", mapping, mapping);
 
     cg.setMappingSet(eval);

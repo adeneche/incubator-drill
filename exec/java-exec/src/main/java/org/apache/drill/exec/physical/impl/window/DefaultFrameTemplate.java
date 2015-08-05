@@ -19,6 +19,7 @@ package org.apache.drill.exec.physical.impl.window;
 
 import org.apache.drill.common.exceptions.DrillException;
 import org.apache.drill.exec.exception.SchemaChangeException;
+import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.record.TransferPair;
 import org.apache.drill.exec.record.VectorAccessible;
 import org.apache.drill.exec.record.VectorContainer;
@@ -34,6 +35,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultFrameTemplate.class);
 
   private VectorContainer container;
+  private VectorContainer internal;
   private List<WindowDataBatch> batches;
   private int outputCount; // number of rows in currently/last processed batch
 
@@ -44,9 +46,14 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   private Partition partition;
 
   @Override
-  public void setup(List<WindowDataBatch> batches, final VectorContainer container) throws SchemaChangeException {
+  public void setup(final List<WindowDataBatch> batches, final VectorContainer container, final OperatorContext oContext)
+      throws SchemaChangeException {
     this.container = container;
     this.batches = batches;
+
+    internal = new VectorContainer(oContext);
+    allocateInternal();
+    internal.setRecordCount(0);
 
     outputCount = 0;
     partition = null;
@@ -58,6 +65,13 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     }
   }
 
+  private void allocateInternal() {
+    for (VectorWrapper<?> w : container) {
+      internal.addOrGet(w.getField());
+      logger.debug("{} -> {}", container.getValueVectorId(w.getField().getPath()), internal.getValueVectorId(w.getField().getPath()));
+    }
+    container.zeroVectors();
+  }
   /**
    * processes all rows of current batch:
    * <ul>
@@ -74,6 +88,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       batches.size(), batches.get(0).getRecordCount());
 
     allocateOutgoing();
+//    allocateInternal(); // make sure we don't keep internal between partitions
 
     final WindowDataBatch current = batches.get(0);
 
@@ -96,6 +111,9 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       if (partition.isDone()) {
         partition = null;
         resetValues();
+        logger.trace("resetting internal");
+        internal.zeroVectors();
+        internal.setRecordCount(0);
       }
     }
 
@@ -128,13 +146,22 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
     final VectorAccessible current = getCurrent();
     setupCopyNext(current, container);
+
+    // copy prev row from internal
+    if (internal.getRecordCount() > 0) {
+      logger.trace("copying from internal");
+      setupCopyFromInternal(internal, container);
+      copyFromInternal(0, 0);
+    }
+
+    // copy remaining from current
     setupCopyPrev(current, container);
 
     int row = currentRow;
 
     // process all rows except the last one of the batch/partition
     while (row < outputCount && !partition.isDone()) {
-      if (row > 0) {
+      if (row != currentRow) { // this is not the first row of the partition
         copyPrev(row - 1, row);
       }
 
@@ -147,10 +174,17 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       row++;
     }
 
-    // if we didn't reach the end of partition yet, copy next value onto the current one
+    // if we didn't reach the end of partition yet
     if (!partition.isDone() && batches.size() > 1) {
+      // copy next value onto the current one
       setupCopyNext(batches.get(1), container);
       copyNext(0, row - 1);
+
+      // copy prev value onto internal container
+      logger.trace("copying {} into internal", row - 1);
+      setupCopyPrev(current, internal);
+      copyPrev(row - 1, 0);
+      internal.setRecordCount(1);
     }
 
     return row;
@@ -290,7 +324,10 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
   // we need this abstract method for code generation
   @Override
-  public abstract void cleanup();
+  public void cleanup() {
+    logger.trace("clearing internal");
+    internal.clear();
+  }
 
   /**
    * called once for each peer row of the current frame.
@@ -326,6 +363,9 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    */
   public abstract void copyPrev(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex);
   public abstract void setupCopyPrev(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
+
+  public abstract void copyFromInternal(@Named("inIndex") int inIndex, @Named("outIndex") int outIndex);
+  public abstract void setupCopyFromInternal(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
 
   /**
    * reset all window functions
