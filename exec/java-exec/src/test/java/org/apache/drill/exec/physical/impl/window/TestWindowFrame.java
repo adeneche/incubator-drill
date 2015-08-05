@@ -158,6 +158,29 @@ public class TestWindowFrame extends BaseTestQuery {
   }
 
   @Test
+  public void testLagWithPby() throws Exception {
+    testBuilder()
+      .sqlQuery(getFile("window/lag.pby.oby.sql"), TEST_RES_PATH)
+      .ordered()
+      .csvBaselineFile("window/b4.p4.lag.pby.oby.tsv")
+      .baselineColumns("position_id", "sub", "employee_id", "line_no", "lead")
+      .build()
+      .run();
+  }
+
+
+  @Test
+  public void testLag() throws Exception {
+    testBuilder()
+      .sqlQuery(getFile("window/lag.oby.sql"), TEST_RES_PATH)
+      .ordered()
+      .csvBaselineFile("window/b4.p4.lag.oby.tsv")
+      .baselineColumns("position_id", "sub", "employee_id", "line_no", "lead")
+      .build()
+      .run();
+  }
+
+  @Test
   public void testLeadWithPby() throws Exception {
     testBuilder()
       .sqlQuery(getFile("window/lead.pby.oby.sql"), TEST_RES_PATH)
@@ -167,5 +190,4 @@ public class TestWindowFrame extends BaseTestQuery {
       .build()
       .run();
   }
-
 }
