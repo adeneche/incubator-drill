@@ -218,4 +218,23 @@ public class TestWindowFrame extends BaseTestQuery {
       .build()
       .run();
   }
+
+  @Test
+  public void testFirstValue() throws Exception {
+    testBuilder()
+      .sqlQuery(getFile("window/fval.pby.sql"), TEST_RES_PATH)
+      .ordered()
+      .csvBaselineFile("window/b4.p4.fval.pby.tsv")
+      .baselineColumns("position_id", "line_no", "first_value")
+      .build()
+      .run();
+  }
+
+  @Test
+  public void testFirstValueAllTypes() throws Exception {
+    // make sure all types are handled properly
+    test(getFile("window/fval.alltypes.sql"), TEST_RES_PATH);
+  }
+
+
 }
