@@ -320,6 +320,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     final List<LogicalExpression> lagExprs = Lists.newArrayList();
     final List<LogicalExpression> internalExprs = Lists.newArrayList();
     final List<LogicalExpression> holdFirstExprs = Lists.newArrayList();
+    final List<LogicalExpression> holdLastExprs = Lists.newArrayList();
     final ErrorCollector collector = new ErrorCollectorImpl();
 
     container.clear();
@@ -357,10 +358,24 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
               final MaterializedField outputField = MaterializedField.create(ne.getRef(), expr.getMajorType());
               ValueVector vv = container.addOrGet(outputField);
               vv.allocateNew();
+
               TypedFieldId id = container.getValueVectorId(ne.getRef());
               holdFirstExprs.add(new ValueVectorWriteExpression(id, expr, true));
             }
             break;
+          case LAST_VALUE:
+          {
+            final LogicalExpression holdExpr = new FunctionCall("holdlast", call.args, ExpressionPosition.UNKNOWN);
+            final LogicalExpression expr = ExpressionTreeMaterializer.materialize(holdExpr, batch, collector, registry);
+
+            final MaterializedField outputField = MaterializedField.create(ne.getRef(), expr.getMajorType());
+            ValueVector vv = container.addOrGet(outputField);
+            vv.allocateNew();
+
+            TypedFieldId id = container.getValueVectorId(ne.getRef());
+            holdLastExprs.add(new ValueVectorWriteExpression(id, expr, true));
+          }
+          break;
           default:
             {
               // add corresponding ValueVector to container
@@ -406,18 +421,17 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     }
 
     final WindowFramer framer = generateFramer(keyExprs, orderExprs, aggExprs, computedExprs, leadExprs, lagExprs,
-      internalExprs, holdFirstExprs);
+      internalExprs, holdFirstExprs, holdLastExprs);
     framer.setup(batches, container, oContext);
 
     return framer;
   }
 
   private WindowFramer generateFramer(final List<LogicalExpression> keyExprs, final List<LogicalExpression> orderExprs,
-                                      final List<LogicalExpression> aggExprs,
-                                      final Map<WindowFunction, TypedFieldId> computedExprs,
-                                      final List<LogicalExpression> leadExprs, final List<LogicalExpression> lagExprs,
-                                      final List<LogicalExpression> internalExprs,
-                                      final List<LogicalExpression> holdFirstExprs) throws IOException, ClassTransformationException {
+      final List<LogicalExpression> aggExprs, final Map<WindowFunction, TypedFieldId> computedExprs,
+      final List<LogicalExpression> leadExprs, final List<LogicalExpression> lagExprs,
+      final List<LogicalExpression> internalExprs, final List<LogicalExpression> holdFirstExprs,
+      final List<LogicalExpression> holdLastExprs) throws IOException, ClassTransformationException {
     final ClassGenerator<WindowFramer> cg = CodeGenerator.getRoot(WindowFramer.TEMPLATE_DEFINITION, context.getFunctionRegistry());
 
     {
@@ -450,6 +464,14 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       final GeneratorMapping EVAL_OUTSIDE = GeneratorMapping.create("setupPartition", "outputRow", "resetValues", "cleanup");
       final MappingSet eval = new MappingSet("index", "outIndex", EVAL_INSIDE, EVAL_OUTSIDE, EVAL_INSIDE);
       generateForExpressions(cg, holdFirstExprs, eval);
+    }
+
+    {
+      // generating LAST_VALUE holdLast
+      final GeneratorMapping EVAL_INSIDE = GeneratorMapping.create("setupEvaluatePeer", "holdLast", null, null);
+      final GeneratorMapping EVAL_OUTSIDE = GeneratorMapping.create("setupPartition", "outputRow", "resetValues", "cleanup");
+      final MappingSet eval = new MappingSet("index", "outIndex", EVAL_INSIDE, EVAL_OUTSIDE, EVAL_INSIDE);
+      generateForExpressions(cg, holdLastExprs, eval);
     }
 
     {

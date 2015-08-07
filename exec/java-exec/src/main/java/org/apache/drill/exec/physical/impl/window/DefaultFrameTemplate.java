@@ -107,11 +107,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
       currentRow = processPartition(currentRow);
       if (partition.isDone()) {
-        partition = null;
-        resetValues();
-        logger.trace("resetting internal");
-        internal.zeroVectors();
-        internal.setRecordCount(0);
+        cleanPartition();
       }
     }
 
@@ -140,6 +136,13 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     holdFirst(currentRow); // this is called once per partition
   }
 
+  private void cleanPartition() {
+    partition = null;
+    resetValues();
+    internal.zeroVectors();
+    internal.setRecordCount(0);
+  }
+
   /**
    * process all rows (computes and writes aggregation values) of current batch that are part of current partition.
    * @param currentRow first unprocessed row
@@ -154,7 +157,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
     // copy prev row from internal
     if (internal.getRecordCount() > 0) {
-      logger.trace("copying from internal");
       setupCopyFromInternal(internal, container);
       copyFromInternal(0, 0);
     }
@@ -289,6 +291,11 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       }
 
       evaluatePeer(row);
+
+      if (i == peers - 1) {
+        // last row of current frame
+        holdLast(row);
+      }
     }
   }
 
@@ -342,6 +349,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   public abstract void setupEvaluatePeer(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
 
   public abstract void holdFirst(@Named("index") int index);
+  public abstract void holdLast(@Named("index") int index);
 
   /**
    * called once for each row after we evaluate all peer rows. Used to write a value in the row
