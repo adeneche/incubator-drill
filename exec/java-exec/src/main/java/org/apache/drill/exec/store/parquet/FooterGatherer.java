@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.drill.exec.store.TimedRunnable;
@@ -41,7 +42,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class FooterGatherer {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FooterGatherer.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FooterGatherer.class);
+
+  private static AtomicLong numReaders = new AtomicLong(0);
 
   private static final int DEFAULT_READ_SIZE = 64*1024;
   private static final int FOOTER_LENGTH_SIZE = 4;
@@ -112,7 +115,13 @@ public class FooterGatherer {
 
     @Override
     protected Footer runInner() throws Exception {
-      return readFooter(conf, status);
+      final long num = numReaders.incrementAndGet();
+      try {
+        logger.info("{} FootGatherer(s) running in parallel", num);
+        return readFooter(conf, status);
+      } finally {
+        numReaders.decrementAndGet();
+      }
     }
 
     @Override
@@ -125,7 +134,7 @@ public class FooterGatherer {
   /**
    * An updated footer reader that tries to read the entire footer without knowing the length.
    * This should reduce the amount of seek/read roundtrips in most workloads.
-   * @param fs
+   * @param config
    * @param status
    * @return
    * @throws IOException
