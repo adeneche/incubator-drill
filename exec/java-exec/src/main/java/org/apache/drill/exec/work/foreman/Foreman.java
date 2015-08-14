@@ -695,7 +695,7 @@ public class Foreman implements Runnable {
       Preconditions.checkState(!isClosed);
       Preconditions.checkState(resultState != null);
 
-      logger.info("foreman cleaning up.");
+      logger.info("foreman {} cleaning up.", QueryIdHelper.getQueryId(queryId));
       injector.injectPause(queryContext.getExecutionControls(), "foreman-cleanup", logger);
 
       // remove the channel disconnected listener (doesn't throw)
@@ -741,7 +741,7 @@ public class Foreman implements Runnable {
       }
 
       // we store the final result here so we can capture any error/errorId in the profile for later debugging.
-      queryManager.writeFinalProfile(uex);
+//      queryManager.writeFinalProfile(uex);
 
       /*
        * If sending the result fails, we don't really have any way to modify the result we tried to send;
