@@ -741,7 +741,7 @@ public class Foreman implements Runnable {
       }
 
       // we store the final result here so we can capture any error/errorId in the profile for later debugging.
-      queryManager.writeFinalProfile(uex);
+//      queryManager.writeFinalProfile(uex);
 
       /*
        * If sending the result fails, we don't really have any way to modify the result we tried to send;
