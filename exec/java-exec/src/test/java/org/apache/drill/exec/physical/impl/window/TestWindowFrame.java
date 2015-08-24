@@ -22,6 +22,7 @@ import java.util.Properties;
 import org.apache.drill.BaseTestQuery;
 import org.apache.drill.DrillTestWrapper;
 import org.apache.drill.common.config.DrillConfig;
+import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.exceptions.UserRemoteException;
 import org.apache.drill.common.util.TestTools;
 import org.apache.drill.exec.ExecConstants;
@@ -303,6 +304,28 @@ public class TestWindowFrame extends BaseTestQuery {
       .baselineColumns("cnt").baselineValues(2L)
       .build()
       .run();
+  }
+
+  @Test public void testLeadParams() throws Exception {
+    // make sure we only support default arguments for LEAD/LAG functions
+    final String query = "SELECT %s OVER(PARTITION BY col7 ORDER BY col8) FROM dfs_test.`%s/window/3648.parquet`";
+
+    test(query, "LEAD(col8, 1)", TEST_RES_PATH);
+    test(query, "LAG(col8, 1)", TEST_RES_PATH);
+
+    try {
+      test(query, "LEAD(col8, 2)", TEST_RES_PATH);
+      fail("query should fail");
+    } catch (UserRemoteException e) {
+      assertEquals(ErrorType.UNSUPPORTED_OPERATION, e.getErrorType());
+    }
+
+    try {
+      test(query, "LAG(col8, 2)", TEST_RES_PATH);
+      fail("query should fail");
+    } catch (UserRemoteException e) {
+      assertEquals(ErrorType.UNSUPPORTED_OPERATION, e.getErrorType());
+    }
   }
 
   @Test
