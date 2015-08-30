@@ -196,7 +196,7 @@
     <dependency>
       <groupId>com.twitter</groupId>
       <artifactId>parquet-common</artifactId>
-      <version>${parquet.version}</version>
+      <version>1.6.0rc3-drill-r0.3.1h</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.hadoop</groupId>

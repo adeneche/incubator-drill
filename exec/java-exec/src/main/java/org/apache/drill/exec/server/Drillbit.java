@@ -52,6 +52,7 @@ import com.codahale.metrics.servlets.MetricsServlet;
 import com.codahale.metrics.servlets.ThreadDumpServlet;
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Closeables;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**
  * Starts, tracks and stops all the required services for a Drillbit daemon to work.
@@ -75,6 +76,13 @@ public class Drillbit implements AutoCloseable {
   public static Drillbit start(final DrillConfig config, final RemoteServiceSet remoteServiceSet)
       throws DrillbitStartupException {
     logger.debug("Starting new Drillbit.");
+
+    // Optionally remove existing handlers attached to j.u.l root logger
+    SLF4JBridgeHandler.removeHandlersForRootLogger();  // (since SLF4J 1.6.5)
+    // add SLF4JBridgeHandler to j.u.l's root logger, should be done once during
+    // the initialization phase of your application
+    SLF4JBridgeHandler.install();
+
     Drillbit bit;
     try {
       bit = new Drillbit(config, remoteServiceSet);
