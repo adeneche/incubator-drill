@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.drill.common.concurrent.ExtendedLatch;
 import org.apache.drill.common.exceptions.UserException;
@@ -43,6 +44,8 @@ public abstract class TimedRunnable<V> implements Runnable {
 
   private static long TIMEOUT_PER_RUNNABLE_IN_MSECS = 15000;
 
+  private static final AtomicLong runningCount = new AtomicLong(0);
+
   private volatile Exception e;
   private volatile long threadStart;
   private volatile long timeNanos;
@@ -52,12 +55,14 @@ public abstract class TimedRunnable<V> implements Runnable {
   public final void run() {
     long start = System.nanoTime();
     threadStart=start;
+    runningCount.incrementAndGet();
     try{
       value = runInner();
     }catch(Exception e){
       this.e = e;
     }finally{
       timeNanos = System.nanoTime() - start;
+      runningCount.decrementAndGet();
     }
   }
 
@@ -146,7 +151,8 @@ public abstract class TimedRunnable<V> implements Runnable {
           }
 
           final String errMsg = String.format("Waited for %dms, but tasks for '%s' are not complete. " +
-              "Total runnable size %d, parallelism %d.", timeout, activity, runnables.size(), parallelism);
+            "Total runnable size %d, parallelism %d. [runnable count %d]", timeout, activity, runnables.size(),
+            parallelism, runningCount.get());
           logger.error(errMsg);
           throw UserException.resourceError()
               .message(errMsg)
