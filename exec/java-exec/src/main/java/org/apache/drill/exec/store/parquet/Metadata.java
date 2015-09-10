@@ -271,7 +271,9 @@ public class Metadata {
         boolean statsAvailable = (col.getStatistics() != null && !col.getStatistics().isEmpty());
 
         Statistics stats = col.getStatistics();
-        SchemaPath columnName = SchemaPath.getCompoundPath(col.getPath().toArray());
+        // make sure we make a copy of ColumnPath's path so we don't reverse the original
+        List<String> path = Lists.newArrayList(col.getPath().toArray());
+        SchemaPath columnName = SchemaPath.getCompoundPath(path);
         if (statsAvailable) {
           columnMetadata = new ColumnMetadata(columnName, col.getType(), originalTypeMap.get(columnName),
               stats.genericGetMax(), stats.genericGetMin(), stats.getNumNulls());
