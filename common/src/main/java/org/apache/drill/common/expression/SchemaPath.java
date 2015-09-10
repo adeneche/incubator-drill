@@ -55,6 +55,10 @@ public class SchemaPath extends LogicalExpressionBase {
 
   public static SchemaPath getCompoundPath(String... strings) {
     List<String> paths = Arrays.asList(strings);
+    return getCompoundPath(paths);
+  }
+
+  public static SchemaPath getCompoundPath(List<String> paths) {
     Collections.reverse(paths);
     NameSegment s = null;
     for (String p : paths) {
