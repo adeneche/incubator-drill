@@ -230,7 +230,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     private final OperatorStats stats;
 
     private boolean isLast = false;
-    private volatile boolean terminated = false;
+    private volatile boolean terminated = false; // true if receiver finished receiving batches
     private boolean dropAll = false;
     private int recordCount;
     private int totalRecords;
@@ -299,7 +299,9 @@ public abstract class PartitionerTemplate implements Partitioner {
         }
       }
 
-      FragmentWritableBatch writableBatch = new FragmentWritableBatch(isLastBatch,
+      // no need to send last batch if the receiver already terminated.
+      if (!terminated) {
+        FragmentWritableBatch writableBatch = new FragmentWritableBatch(isLastBatch,
           handle.getQueryId(),
           handle.getMajorFragmentId(),
           handle.getMinorFragmentId(),
@@ -307,14 +309,14 @@ public abstract class PartitionerTemplate implements Partitioner {
           oppositeMinorFragmentId,
           getWritableBatch());
 
-      updateStats(writableBatch);
-      stats.startWait();
-      try {
-        tunnel.sendRecordBatch(writableBatch);
-      } finally {
-        stats.stopWait();
+        updateStats(writableBatch);
+        stats.startWait();
+        try {
+          tunnel.sendRecordBatch(writableBatch);
+        } finally {
+          stats.stopWait();
+        }
       }
-
       // If the current batch is the last batch, then set a flag to ignore any requests to flush the data
       // This is possible when the receiver is terminated, but we still get data from input operator
       if (isLastBatch) {
