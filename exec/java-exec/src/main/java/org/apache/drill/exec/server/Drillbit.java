@@ -17,9 +17,12 @@
  */
 package org.apache.drill.exec.server;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.sun.management.UnixOperatingSystemMXBean;
 import org.apache.drill.common.AutoCloseables;
 import org.apache.drill.common.StackTrace;
 import org.apache.drill.common.config.DrillConfig;
@@ -62,6 +65,8 @@ public class Drillbit implements AutoCloseable {
   }
 
   private boolean isClosed = false;
+
+  private final OpenFilesLogThread openFilesLogThread;
 
   public static Drillbit start(final StartupOptions options) throws DrillbitStartupException {
     return start(DrillConfig.create(options.getConfigLocation()), null);
@@ -199,6 +204,10 @@ public class Drillbit implements AutoCloseable {
       storeProvider = new PStoreRegistry(this.coord, config).newPStoreProvider();
     }
     logger.info("Construction completed ({} ms).", w.elapsed(TimeUnit.MILLISECONDS));
+
+    logger.info("starting open-files log thread");
+    openFilesLogThread = new OpenFilesLogThread();
+    openFilesLogThread.start();
   }
 
   private void startJetty() throws Exception {
@@ -346,4 +355,27 @@ public class Drillbit implements AutoCloseable {
     return manager.getContext();
   }
 
+  private static final int OPENFILES_LOGGER_FREQUENCY_SECONDS = 120;
+
+  private class OpenFilesLogThread extends Thread {
+    public OpenFilesLogThread() {
+      super("open-files-logger");
+      setDaemon(true);
+    }
+
+    @Override
+    public void run() {
+      while (true) {
+        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        if(os instanceof UnixOperatingSystemMXBean){
+          logger.info("Number of open fd: {}", ((UnixOperatingSystemMXBean) os).getOpenFileDescriptorCount());
+        }
+        try {
+          Thread.sleep(OPENFILES_LOGGER_FREQUENCY_SECONDS * 1000);
+        } catch (InterruptedException e) {
+          return;
+        }
+      }
+    }
+  }
 }
