@@ -180,6 +180,12 @@ public interface ExecConstants {
   public static final OptionValidator MAX_WIDTH_PER_NODE = new PositiveLongValidator(MAX_WIDTH_PER_NODE_KEY, Integer.MAX_VALUE, (long) Math.ceil(Runtime.getRuntime().availableProcessors() * 0.70));
 
   /**
+   * Maximum number of threads used when creating the Parquet Metadata Cache
+   */
+  String METADATA_NUM_THREADS_KEY = "planner.metadata.parallelism";
+  PositiveLongValidator METADATA_NUM_THREADS = new PositiveLongValidator(METADATA_NUM_THREADS_KEY, Integer.MAX_VALUE, 16);
+
+  /**
    * The maximum level or parallelization any stage of the query can do. Note that while this
    * might be the number of active Drillbits, realistically, this could be well beyond that
    * number of we want to do things like speed results return.

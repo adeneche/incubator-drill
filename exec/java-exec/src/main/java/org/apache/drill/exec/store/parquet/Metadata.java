@@ -58,7 +58,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class Metadata {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Metadata.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Metadata.class);
 
   public static final String METADATA_FILENAME = ".drill.parquet_metadata";
 
@@ -70,9 +70,9 @@ public class Metadata {
    * @param path
    * @throws IOException
    */
-  public static void createMeta(FileSystem fs, String path) throws IOException {
+  public static void createMeta(FileSystem fs, String path, int parallelism) throws IOException {
     Metadata metadata = new Metadata(fs);
-    metadata.createMetaFilesRecursively(path);
+    metadata.createMetaFilesRecursively(path, parallelism);
   }
 
   /**
@@ -121,7 +121,7 @@ public class Metadata {
    * @param path
    * @throws IOException
    */
-  private ParquetTableMetadata_v1 createMetaFilesRecursively(final String path) throws IOException {
+  private ParquetTableMetadata_v1 createMetaFilesRecursively(final String path, int parallelism) throws IOException {
     List<ParquetFileMetadata> metaDataList = Lists.newArrayList();
     List<String> directoryList = Lists.newArrayList();
     Path p = new Path(path);
@@ -132,7 +132,7 @@ public class Metadata {
 
     for (final FileStatus file : fs.listStatus(p, new DrillPathFilter())) {
       if (file.isDirectory()) {
-        ParquetTableMetadata_v1 subTableMetadata = createMetaFilesRecursively(file.getPath().toString());
+        ParquetTableMetadata_v1 subTableMetadata = createMetaFilesRecursively(file.getPath().toString(), parallelism);
         metaDataList.addAll(subTableMetadata.files);
         directoryList.addAll(subTableMetadata.directories);
         directoryList.add(file.getPath().toString());
@@ -141,7 +141,7 @@ public class Metadata {
       }
     }
     if (childFiles.size() > 0) {
-      metaDataList.addAll(getParquetFileMetadata(childFiles));
+      metaDataList.addAll(getParquetFileMetadata(childFiles, parallelism));
     }
     ParquetTableMetadata_v1 parquetTableMetadata = new ParquetTableMetadata_v1(metaDataList, directoryList);
     writeFile(parquetTableMetadata, new Path(p, METADATA_FILENAME));
@@ -176,19 +176,30 @@ public class Metadata {
   }
 
   /**
-   * Get a list of file metadata for a list of parquet files
+   * Get a list of file metadata for a list of parquet files. Uses at most 16 threads to fetch the file footers
    * @param fileStatuses
    * @return
    * @throws IOException
    */
   private List<ParquetFileMetadata> getParquetFileMetadata(List<FileStatus> fileStatuses) throws IOException {
+    return getParquetFileMetadata(fileStatuses, 16);
+  }
+
+  /**
+   * Get a list of file metadata for a list of parquet files
+   * @param fileStatuses
+   * @param paralellism The number of threads that should be run to complete this task
+   * @return
+   * @throws IOException
+   */
+  private List<ParquetFileMetadata> getParquetFileMetadata(List<FileStatus> fileStatuses, int paralellism) throws IOException {
     List<TimedRunnable<ParquetFileMetadata>> gatherers = Lists.newArrayList();
     for (FileStatus file : fileStatuses) {
       gatherers.add(new MetadataGatherer(file));
     }
 
     List<ParquetFileMetadata> metaDataList = Lists.newArrayList();
-    metaDataList.addAll(TimedRunnable.run("Fetch parquet metadata", logger, gatherers, 16));
+    metaDataList.addAll(TimedRunnable.run("Fetch parquet metadata", logger, gatherers, paralellism));
     return metaDataList;
   }
 
@@ -355,8 +366,9 @@ public class Metadata {
     FSDataInputStream is = fs.open(p);
     ParquetTableMetadata_v1 parquetTableMetadata = mapper.readValue(is, ParquetTableMetadata_v1.class);
     if (tableModified(parquetTableMetadata, p)) {
-      parquetTableMetadata = createMetaFilesRecursively(Path.getPathWithoutSchemeAndAuthority(p.getParent()).toString());
+      parquetTableMetadata = createMetaFilesRecursively(Path.getPathWithoutSchemeAndAuthority(p.getParent()).toString(), 16);
     }
+    is.close();
     return parquetTableMetadata;
   }
 

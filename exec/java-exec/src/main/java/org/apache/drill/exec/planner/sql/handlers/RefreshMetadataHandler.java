@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.drill.common.logical.FormatPluginConfig;
+import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.planner.logical.DrillRel;
@@ -115,7 +116,9 @@ public class RefreshMetadataHandler extends DefaultSqlHandler {
         return notSupported(tableName);
       }
 
-      Metadata.createMeta(fs, selectionRoot);
+      final int parallelism = (int) context.getOptions().getOption(ExecConstants.METADATA_NUM_THREADS);
+      logger.info("Creating metadata using {} threads", parallelism);
+      Metadata.createMeta(fs, selectionRoot, parallelism);
       return direct(true, "Successfully updated metadata for table %s.", tableName);
 
     } catch(Exception e) {
