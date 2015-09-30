@@ -19,6 +19,7 @@ package org.apache.drill.exec.server;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +38,7 @@ import org.apache.drill.exec.server.options.OptionValue;
 import org.apache.drill.exec.server.options.OptionValue.OptionType;
 import org.apache.drill.exec.server.rest.DrillRestServer;
 import org.apache.drill.exec.service.ServiceEngine;
+import org.apache.drill.exec.store.TimedRunnable;
 import org.apache.drill.exec.store.sys.CachingStoreProvider;
 import org.apache.drill.exec.store.sys.PStoreProvider;
 import org.apache.drill.exec.store.sys.PStoreRegistry;
@@ -355,7 +357,7 @@ public class Drillbit implements AutoCloseable {
     return manager.getContext();
   }
 
-  private static final int OPENFILES_LOGGER_FREQUENCY_SECONDS = 120;
+  private static final int OPENFILES_LOGGER_FREQUENCY_SECONDS = 60;
 
   private class OpenFilesLogThread extends Thread {
     public OpenFilesLogThread() {
@@ -365,11 +367,17 @@ public class Drillbit implements AutoCloseable {
 
     @Override
     public void run() {
+      OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+      if (!(os instanceof UnixOperatingSystemMXBean)) {
+        return;
+      }
+      final UnixOperatingSystemMXBean uos = (UnixOperatingSystemMXBean) os;
+      final ThreadMXBean tmx = ManagementFactory.getThreadMXBean();
+
       while (true) {
-        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        if(os instanceof UnixOperatingSystemMXBean){
-          logger.info("Number of open fd: {}", ((UnixOperatingSystemMXBean) os).getOpenFileDescriptorCount());
-        }
+        logger.info("STATS: fd: {}/{}. threads {}",
+          uos.getOpenFileDescriptorCount(), uos.getMaxFileDescriptorCount(),
+          tmx.getPeakThreadCount());
         try {
           Thread.sleep(OPENFILES_LOGGER_FREQUENCY_SECONDS * 1000);
         } catch (InterruptedException e) {

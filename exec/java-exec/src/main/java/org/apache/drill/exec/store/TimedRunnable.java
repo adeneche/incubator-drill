@@ -46,6 +46,10 @@ public abstract class TimedRunnable<V> implements Runnable {
 
   private static final AtomicLong runningCount = new AtomicLong(0);
 
+  public static long getRunningCount() {
+    return runningCount.get();
+  }
+
   private volatile Exception e;
   private volatile long threadStart;
   private volatile long timeNanos;
