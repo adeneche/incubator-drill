@@ -352,12 +352,13 @@ public class Metadata {
     module.addDeserializer(SchemaPath.class, new De());
     mapper.registerModule(module);
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    FSDataInputStream is = fs.open(p);
-    ParquetTableMetadata_v1 parquetTableMetadata = mapper.readValue(is, ParquetTableMetadata_v1.class);
-    if (tableModified(parquetTableMetadata, p)) {
-      parquetTableMetadata = createMetaFilesRecursively(Path.getPathWithoutSchemeAndAuthority(p.getParent()).toString());
+    try (FSDataInputStream is = fs.open(p)) {
+      ParquetTableMetadata_v1 parquetTableMetadata = mapper.readValue(is, ParquetTableMetadata_v1.class);
+      if (tableModified(parquetTableMetadata, p)) {
+        parquetTableMetadata = createMetaFilesRecursively(Path.getPathWithoutSchemeAndAuthority(p.getParent()).toString());
+      }
+      return parquetTableMetadata;
     }
-    return parquetTableMetadata;
   }
 
   /**
