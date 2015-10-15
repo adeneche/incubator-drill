@@ -84,6 +84,8 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   private ExecutorState executorState;
   private final ExecutionControls executionControls;
 
+  private boolean shouldStop;
+
   private final SendingAccountor sendingAccountor = new SendingAccountor();
   private final Consumer<RpcException> exceptionConsumer = new Consumer<RpcException>() {
     @Override
@@ -206,7 +208,11 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
    * @return false if the action should terminate immediately, true if everything is okay.
    */
   public boolean shouldContinue() {
-    return executorState.shouldContinue();
+    return !shouldStop && executorState.shouldContinue();
+  }
+
+  public void receiverFinished() {
+    shouldStop = true;
   }
 
   public DrillbitContext getDrillbitContext() {
