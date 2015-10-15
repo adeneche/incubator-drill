@@ -314,6 +314,14 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
             }
             break;
           }
+
+          if (!context.shouldContinue()) {
+            for (VectorWrapper<?> wrapper : incoming) {
+              wrapper.getValueVector().clear();
+            }
+            return IterOutcome.STOP;
+          }
+
           totalSizeInMemory += getBufferSize(incoming);
           SelectionVector2 sv2;
           if (incoming.getSchema().getSelectionVectorMode() == BatchSchema.SelectionVectorMode.TWO_BYTE) {

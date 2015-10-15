@@ -60,6 +60,8 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   private boolean noMoreBatches;
   private BatchSchema schema;
 
+  private boolean killed;
+
   public WindowFrameRecordBatch(WindowPOP popConfig, FragmentContext context, RecordBatch incoming) throws OutOfMemoryException {
     super(popConfig, context);
     this.incoming = incoming;
@@ -110,6 +112,8 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     // Short circuit if record batch has already sent all data and is done
     if (state == BatchState.DONE) {
       return IterOutcome.NONE;
+    } else if (killed) {
+      return IterOutcome.STOP;
     }
 
     // keep saving incoming batches until the first unprocessed batch can be processed, or upstream == NONE
@@ -136,14 +140,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
           }
         case OK:
           if (incoming.getRecordCount() > 0) {
-            if (batches != null) {
-              batches.add(new WindowDataBatch(incoming, oContext));
-            } else {
-              // killIncoming() has been called, make sure we clear any incoming batch
-              for (VectorWrapper<?> wrapper : incoming) {
-                wrapper.getValueVector().clear();
-              }
-            }
+            batches.add(new WindowDataBatch(incoming, oContext));
           } else {
             logger.trace("incoming has 0 records, it won't be added to batches");
           }
@@ -153,7 +150,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       }
     }
 
-    if (batches == null || batches.isEmpty()) {
+    if (batches.isEmpty()) {
       logger.trace("no more batches to handle, we are DONE");
       state = BatchState.DONE;
       return IterOutcome.NONE;
@@ -331,6 +328,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   @Override
   protected void killIncoming(boolean sendUpstream) {
     cleanup();
+    killed = true;
     incoming.kill(sendUpstream);
   }
 
