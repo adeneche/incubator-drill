@@ -146,7 +146,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       }
     }
 
-    if (batches.isEmpty()) {
+    if (batches == null || batches.isEmpty()) {
       logger.trace("no more batches to handle, we are DONE");
       state = BatchState.DONE;
       return IterOutcome.NONE;
@@ -323,6 +323,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
   @Override
   protected void killIncoming(boolean sendUpstream) {
+    cleanup();
     incoming.kill(sendUpstream);
   }
 
