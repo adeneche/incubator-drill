@@ -136,7 +136,14 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
           }
         case OK:
           if (incoming.getRecordCount() > 0) {
-            batches.add(new WindowDataBatch(incoming, oContext));
+            if (batches != null) {
+              batches.add(new WindowDataBatch(incoming, oContext));
+            } else {
+              // killIncoming() has been called, make sure we clear any incoming batch
+              for (VectorWrapper<?> wrapper : incoming) {
+                wrapper.getValueVector().clear();
+              }
+            }
           } else {
             logger.trace("incoming has 0 records, it won't be added to batches");
           }

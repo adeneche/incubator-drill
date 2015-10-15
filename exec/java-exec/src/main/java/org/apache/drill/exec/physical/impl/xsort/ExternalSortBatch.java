@@ -119,6 +119,8 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   private final String fileName;
   private int firstSpillBatchCount = 0;
 
+  private boolean killed = false;
+
   /**
    * The copier uses the COPIER_BATCH_MEM_LIMIT to estimate the target
    * number of records to return in each batch.
@@ -246,6 +248,10 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   @Override
   public IterOutcome innerNext() {
     if (schema != null) {
+      if (killed) {
+        return IterOutcome.NONE;
+      }
+
       if (spillCount == 0) {
         return (getSelectionVector4().next()) ? IterOutcome.OK : IterOutcome.NONE;
       } else {
@@ -788,6 +794,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
 
   @Override
   protected void killIncoming(boolean sendUpstream) {
+    killed = true;
     incoming.kill(sendUpstream);
   }
 
