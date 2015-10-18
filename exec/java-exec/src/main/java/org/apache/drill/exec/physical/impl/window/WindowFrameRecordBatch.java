@@ -114,6 +114,20 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       return IterOutcome.NONE;
     }
 
+    if (kill) {
+      // if incomingKill() was called, just make sure we clear incomings until we receive a NONE
+      IterOutcome upstream = next(incoming);
+      while (upstream == IterOutcome.OK || upstream == IterOutcome.OK_NEW_SCHEMA) {
+        // Clear the memory for the incoming batch
+        for (VectorWrapper<?> wrapper : incoming) {
+          wrapper.getValueVector().clear();
+        }
+        upstream = next(incoming);
+      }
+
+      return IterOutcome.NONE;
+    }
+
     // keep saving incoming batches until the first unprocessed batch can be processed, or upstream == NONE
     while (!noMoreBatches && !framer.canDoWork()) {
       IterOutcome upstream = next(incoming);
@@ -137,12 +151,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
             this.schema = incoming.getSchema();
           }
         case OK:
-          if (kill) {
-            // In case upstream is still sending batches, just clear them
-            for (VectorWrapper<?> wrapper : incoming) {
-              wrapper.getValueVector().clear();
-            }
-          } else if (incoming.getRecordCount() > 0) {
+          if (incoming.getRecordCount() > 0) {
             batches.add(new WindowDataBatch(incoming, oContext));
           }
           break;
