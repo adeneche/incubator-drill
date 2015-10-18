@@ -85,9 +85,9 @@ public class UnlimitedRawBatchBuffer extends BaseRawBatchBuffer<RawFragmentBatch
   }
 
   protected void enqueueInner(final RawFragmentBatch batch) throws IOException {
-    if (bufferQueue.size() < softlimit) {
+//    if (bufferQueue.size() < softlimit) {
       batch.sendOk();
-    }
+//    }
     bufferQueue.add(batch);
   }
 
