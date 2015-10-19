@@ -20,6 +20,7 @@ package org.apache.drill.exec.work.batch;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import org.apache.drill.exec.ExecConstants;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.record.RawFragmentBatch;
 
@@ -30,6 +31,7 @@ public class UnlimitedRawBatchBuffer extends BaseRawBatchBuffer<RawFragmentBatch
 
   private final int softlimit;
   private final int startlimit;
+  private final boolean noLimit;
 
   public UnlimitedRawBatchBuffer(FragmentContext context, int fragmentCount, int oppositeId) {
     super(context, fragmentCount);
@@ -37,6 +39,7 @@ public class UnlimitedRawBatchBuffer extends BaseRawBatchBuffer<RawFragmentBatch
     this.startlimit = Math.max(softlimit/2, 1);
     logger.trace("softLimit: {}, startLimit: {}", softlimit, startlimit);
     this.bufferQueue = new UnlimitedBufferQueue();
+    this.noLimit = context.getConfig().getBoolean(ExecConstants.RECEIVER_NOLIMIT_KEY);
   }
 
   private class UnlimitedBufferQueue implements BufferQueue<RawFragmentBatch> {
@@ -85,9 +88,9 @@ public class UnlimitedRawBatchBuffer extends BaseRawBatchBuffer<RawFragmentBatch
   }
 
   protected void enqueueInner(final RawFragmentBatch batch) throws IOException {
-//    if (bufferQueue.size() < softlimit) {
+    if (noLimit || bufferQueue.size() < softlimit) {
       batch.sendOk();
-//    }
+    }
     bufferQueue.add(batch);
   }
 
