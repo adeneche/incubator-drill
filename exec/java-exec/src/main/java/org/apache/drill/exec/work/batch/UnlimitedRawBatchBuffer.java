@@ -39,7 +39,7 @@ public class UnlimitedRawBatchBuffer extends BaseRawBatchBuffer<RawFragmentBatch
     this.startlimit = Math.max(softlimit/2, 1);
     logger.trace("softLimit: {}, startLimit: {}", softlimit, startlimit);
     this.bufferQueue = new UnlimitedBufferQueue();
-    this.noLimit = context.getConfig().getBoolean(ExecConstants.RECEIVER_NOLIMIT_KEY);
+    this.noLimit = context.getOptions().getOption(ExecConstants.RECEIVER_NOLIMIT_KEY).bool_val;
   }
 
   private class UnlimitedBufferQueue implements BufferQueue<RawFragmentBatch> {
