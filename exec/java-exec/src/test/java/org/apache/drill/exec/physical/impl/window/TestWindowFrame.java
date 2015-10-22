@@ -330,7 +330,7 @@ public class TestWindowFrame extends BaseTestQuery {
 
   @Test
   public void testPartitionNtile() {
-    Partition partition = new Partition(12);
+    Partition partition = new Partition(12, false);
 
     assertEquals(1, partition.ntile(5));
     partition.rowAggregated();
