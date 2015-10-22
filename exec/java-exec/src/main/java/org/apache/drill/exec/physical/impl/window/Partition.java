@@ -23,8 +23,12 @@ package org.apache.drill.exec.physical.impl.window;
 public class Partition {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Partition.class);
 
-  private final long length; // size of this partition
+  private final boolean partial;
+
+  private long length; // size of this partition (if partial is true, then this is a partial length of the partition)
   private long remaining;
+
+  private boolean lastBatch;
 
   private int peers; // remaining non-processed peers in current frame
 
@@ -49,10 +53,23 @@ public class Partition {
     return peers;
   }
 
-  public Partition(long length) {
+  /**
+   * @param length number of rows in this partition
+   * @param partial if true, then length is not the full length of the partition but just the number of rows in the
+   *                current batch
+   */
+  public Partition(long length, boolean partial) {
     this.length = length;
+    this.partial = partial;
     remaining = length;
     row_number = 1;
+  }
+
+  public void updateLength(long length, boolean lastBatch) {
+    assert partial : "updateLength() should only be called when partial == true";
+    this.length += length;
+    remaining += length;
+    this.lastBatch = lastBatch;
   }
 
   public void rowAggregated() {
@@ -72,7 +89,7 @@ public class Partition {
   }
 
   public boolean isDone() {
-    return remaining == 0;
+    return (!partial || lastBatch) && remaining == 0;
   }
 
   public int ntile(int numTiles) {
