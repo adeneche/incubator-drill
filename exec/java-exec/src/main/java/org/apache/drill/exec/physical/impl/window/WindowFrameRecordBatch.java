@@ -63,6 +63,8 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   private boolean noMoreBatches;
   private BatchSchema schema;
 
+  private boolean kill = false;
+
   public WindowFrameRecordBatch(WindowPOP popConfig, FragmentContext context, RecordBatch incoming) throws OutOfMemoryException {
     super(popConfig, context);
     this.incoming = incoming;
@@ -116,7 +118,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     }
 
     // keep saving incoming batches until the first unprocessed batch can be processed, or upstream == NONE
-    while (!noMoreBatches && !canDoWork()) {
+    while (!noMoreBatches && (kill || !canDoWork())) {
       IterOutcome upstream = next(incoming);
       logger.trace("next(incoming) returned {}", upstream);
 
@@ -138,10 +140,12 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
             this.schema = incoming.getSchema();
           }
         case OK:
-          if (incoming.getRecordCount() > 0) {
+          if (kill) {
+            for (VectorWrapper<?> wrapper : incoming) {
+              wrapper.getValueVector().clear();
+            }
+          } else if (incoming.getRecordCount() > 0) {
             batches.add(new WindowDataBatch(incoming, oContext));
-          } else {
-            logger.trace("incoming has 0 records, it won't be added to batches");
           }
           break;
         default:
@@ -359,6 +363,11 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
   @Override
   protected void killIncoming(boolean sendUpstream) {
+    kill = true;
+    for (WindowDataBatch batch : batches) {
+      batch.clear();
+    }
+    batches.clear();
     incoming.kill(sendUpstream);
   }
 
