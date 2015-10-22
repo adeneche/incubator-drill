@@ -19,10 +19,14 @@ package org.apache.drill.exec.server.rest.profile;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.drill.exec.ops.OperatorMetricRegistry;
 import org.apache.drill.exec.proto.UserBitShared.CoreOperatorType;
+import org.apache.drill.exec.proto.UserBitShared.MetricValue;
 import org.apache.drill.exec.proto.UserBitShared.OperatorProfile;
 import org.apache.drill.exec.proto.UserBitShared.StreamProfile;
 
@@ -33,9 +37,10 @@ public class OperatorWrapper {
   private static final String format = " (%s)";
 
   private final int major;
-  private final List<ImmutablePair<OperatorProfile, Integer>> ops;
+  private final List<ImmutablePair<OperatorProfile, Integer>> ops; // operator profile --> minor fragment number
   private final OperatorProfile firstProfile;
   private final CoreOperatorType operatorType;
+  private final String operatorName;
   private final int size;
 
   public OperatorWrapper(int major, List<ImmutablePair<OperatorProfile, Integer>> ops) {
@@ -43,13 +48,14 @@ public class OperatorWrapper {
     this.major = major;
     firstProfile = ops.get(0).getLeft();
     operatorType = CoreOperatorType.valueOf(firstProfile.getOperatorType());
+    operatorName = operatorType == null ? "UNKNOWN_OPERATOR" : operatorType.toString();
     this.ops = ops;
     size = ops.size();
   }
 
   public String getDisplayName() {
     final String path = new OperatorPathBuilder().setMajor(major).setOperator(firstProfile).build();
-    return String.format("%s - %s", path, operatorType == null ? "UNKNOWN_OPERATOR" : operatorType.toString());
+    return String.format("%s - %s", path, operatorName);
   }
 
   public String getId() {
@@ -94,7 +100,7 @@ public class OperatorWrapper {
 
     String path = new OperatorPathBuilder().setMajor(major).setOperator(firstProfile).build();
     tb.appendCell(path, null);
-    tb.appendCell(operatorType == null ? "UNKNOWN_OPERATOR" : operatorType.toString(), null);
+    tb.appendCell(operatorName, null);
 
     double setupSum = 0.0;
     double processSum = 0.0;
@@ -129,5 +135,49 @@ public class OperatorWrapper {
     final ImmutablePair<OperatorProfile, Integer> peakMem = Collections.max(ops, Comparators.operatorPeakMemory);
     tb.appendBytes(Math.round(memSum / size), null);
     tb.appendBytes(peakMem.getLeft().getPeakLocalMemoryAllocated(), null);
+  }
+
+  public String getMetricsTable() {
+    final String[] metricNames = OperatorMetricRegistry.getMetricNames(operatorType.getNumber());
+    if (metricNames == null) {
+      return "";
+    }
+
+    final String[] metricsTableColumnNames = new String[metricNames.length + 1];
+    metricsTableColumnNames[0] = "Minor Fragment";
+    int i = 1;
+    for (final String metricName : metricNames) {
+      metricsTableColumnNames[i++] = metricName;
+    }
+    final TableBuilder builder = new TableBuilder(metricsTableColumnNames);
+    for (final ImmutablePair<OperatorProfile, Integer> ip : ops) {
+      final OperatorProfile op = ip.getLeft();
+
+      builder.appendCell(
+          new OperatorPathBuilder()
+              .setMajor(major)
+              .setMinor(ip.getRight())
+              .setOperator(op)
+              .build(),
+          null);
+
+      final Map<Integer, Number> valueMap = Maps.newHashMap(); // metric id --> metric value
+      for (final MetricValue metric : op.getMetricList()) {
+        if (metric.hasLongValue()) {
+          valueMap.put(metric.getMetricId(), metric.getLongValue());
+        } else if (metric.hasDoubleValue()) {
+          valueMap.put(metric.getMetricId(), metric.getDoubleValue());
+        }
+      }
+      for (i = 0; i < metricNames.length; i++) {
+        final Number value = valueMap.get(i);
+        if (value != null) {
+          builder.appendFormattedNumber(value, null);
+        } else {
+          builder.appendCell("", null);
+        }
+      }
+    }
+    return builder.build();
   }
 }
