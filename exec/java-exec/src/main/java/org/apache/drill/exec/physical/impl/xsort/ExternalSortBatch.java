@@ -48,6 +48,7 @@ import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.memory.OutOfMemoryException;
 import org.apache.drill.exec.memory.OutOfMemoryRuntimeException;
 import org.apache.drill.exec.ops.FragmentContext;
+import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.config.ExternalSort;
 import org.apache.drill.exec.physical.impl.sort.RecordBatchData;
 import org.apache.drill.exec.physical.impl.sort.SortRecordBatchBuilder;
@@ -129,6 +130,16 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   public static final String INTERRUPTION_AFTER_SETUP = "after-setup";
   public static final String INTERRUPTION_WHILE_SPILLING = "spilling";
 
+
+  public enum Metric implements MetricDef {
+    NUM_SPILLED;
+
+
+    @Override
+    public int metricId() {
+      return ordinal();
+    }
+  }
 
   public ExternalSortBatch(ExternalSort popConfig, FragmentContext context, RecordBatch incoming) throws OutOfMemoryException {
     super(popConfig, context, true);
@@ -528,6 +539,8 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     c1.setRecordCount(count);
 
     String outputFile = Joiner.on("/").join(dirs.next(), fileName, spillCount++);
+    stats.addLongStat(Metric.NUM_SPILLED, spillCount);
+
     BatchGroup newGroup = new BatchGroup(c1, fs, outputFile, oContext.getAllocator());
     boolean threw = true; // true if an exception is thrown in the try block below
     logger.info("Merging and spilling to {}", outputFile);
