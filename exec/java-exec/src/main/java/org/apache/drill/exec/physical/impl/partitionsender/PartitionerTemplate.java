@@ -63,6 +63,7 @@ public abstract class PartitionerTemplate implements Partitioner {
   private OperatorStats stats;
   private int start;
   private int end;
+  private int cur;
   private List<OutgoingRecordBatch> outgoingBatches = Lists.newArrayList();
 
   private int outgoingRecordBatchSize = DEFAULT_RECORD_BATCH_SIZE;
@@ -95,6 +96,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     this.stats = stats;
     this.start = start;
     this.end = end;
+    this.cur = (int) Math.floor(Math.random() * (end - start)) + start;
     doSetup(context, incoming, null);
 
     // Half the outgoing record batch size if the number of senders exceeds 1000 to reduce the total amount of memory
@@ -202,7 +204,11 @@ public abstract class PartitionerTemplate implements Partitioner {
    * @throws IOException
    */
   private void doCopy(int svIndex) throws IOException {
-    int index = doEval(svIndex);
+//    int index = doEval(svIndex);
+    int index = cur++;
+    if (cur == end) {
+      cur = start;
+    }
     if ( index >= start && index < end) {
       OutgoingRecordBatch outgoingBatch = outgoingBatches.get(index - start);
       outgoingBatch.copy(svIndex);
