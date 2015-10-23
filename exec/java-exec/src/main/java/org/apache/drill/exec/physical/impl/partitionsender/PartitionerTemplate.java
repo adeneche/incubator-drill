@@ -204,7 +204,7 @@ public abstract class PartitionerTemplate implements Partitioner {
    * @throws IOException
    */
   private void doCopy(int svIndex) throws IOException {
-//    int index = doEval(svIndex);
+    doEval(svIndex);
     int index = cur++;
     if (cur == end) {
       cur = start;
