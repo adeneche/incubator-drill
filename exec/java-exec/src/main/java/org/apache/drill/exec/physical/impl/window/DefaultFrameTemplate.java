@@ -328,7 +328,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    * batches of current partition to be processed at once.<br>
    * Assumes the end of the frame has indeed been found, because of this it doesn't use partition.remaining to check
    * the end of current partition but rather isSamePartition()
-   * 
    * @param start first row of current frame
    * @return number of peer rows
    */
