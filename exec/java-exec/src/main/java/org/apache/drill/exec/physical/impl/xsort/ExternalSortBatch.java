@@ -246,6 +246,10 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   @Override
   public IterOutcome innerNext() {
     if (schema != null) {
+      if (!context.shouldContinue()) {
+        return IterOutcome.NONE;
+      }
+
       if (spillCount == 0) {
         return (getSelectionVector4().next()) ? IterOutcome.OK : IterOutcome.NONE;
       } else {

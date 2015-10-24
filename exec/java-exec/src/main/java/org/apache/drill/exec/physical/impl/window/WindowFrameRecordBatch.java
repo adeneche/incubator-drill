@@ -113,12 +113,12 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     logger.trace("innerNext(), noMoreBatches = {}", noMoreBatches);
 
     // Short circuit if record batch has already sent all data and is done
-    if (state == BatchState.DONE || kill) {
+    if (state == BatchState.DONE) {
       return IterOutcome.NONE;
     }
 
     // keep saving incoming batches until the first unprocessed batch can be processed, or upstream == NONE
-    while (!noMoreBatches && !canDoWork()) {
+    while (!noMoreBatches && (kill || !canDoWork())) {
       IterOutcome upstream = next(incoming);
       logger.trace("next(incoming) returned {}", upstream);
 
@@ -364,6 +364,10 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   @Override
   protected void killIncoming(boolean sendUpstream) {
     kill = true;
+    for (WindowDataBatch batch : batches) {
+      batch.clear();
+    }
+    batches.clear();
     incoming.kill(sendUpstream);
   }
 
