@@ -153,6 +153,16 @@ public abstract class WindowFunction {
       cg.setMappingSet(mappingSet);
       cg.addExpr(writeAggregationToOutput);
     }
+
+    @Override
+    public boolean requiresFullPartition(final boolean hasOrderBy) {
+      return !hasOrderBy;
+    }
+
+    @Override
+    public boolean canDoWork(int numBatchesAvailable, boolean hasOrderBy, boolean frameEndReached, boolean partitionEndReached) {
+      return partitionEndReached || (hasOrderBy && frameEndReached);
+    }
   }
 
   static class Ranking extends WindowFunction {

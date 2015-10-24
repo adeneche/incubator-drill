@@ -235,9 +235,9 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     if (partition.isFrameDone()) {
       // because all peer rows share the same frame, we only need to compute and aggregate the frame once
       if (!requireFullPartition) {
-        partition.newFrame(countPeersCheckPartition(row));
+        partition.newFrame(countPeersPartialPartition(row));
       } else {
-        partition.newFrame(countPeers(row));
+        partition.newFrame(countPeersFullPartition(row));
       }
       aggregatePeers(row);
     }
@@ -300,7 +300,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    * @param start first row of current frame
    * @return number of peer rows
    */
-  private int countPeers(final int start) {
+  private int countPeersFullPartition(final int start) {
     // current frame always starts from first batch
     final VectorAccessible first = getCurrent();
     final long remaining = partition.getRemaining();
@@ -324,14 +324,17 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   /**
-   * Counts how many rows are peer with the first row of the current frame. Makes sure the partition is also the same
+   * Counts how many rows are peer with the first row of the current frame. This is called when we don't require all
+   * batches of current partition to be processed at once.<br>
+   * Assumes the end of the frame has indeed been found, because of this it doesn't use partition.remaining to check
+   * the end of current partition but rather isSamePartition()
+   * 
    * @param start first row of current frame
    * @return number of peer rows
    */
-  private int countPeersCheckPartition(final int start) {
+  private int countPeersPartialPartition(final int start) {
     // current frame always starts from first batch
     final VectorAccessible first = getCurrent();
-    final long remaining = partition.getRemaining();
     int length = 0;
 
     // count all rows that are in the same frame of starting row
@@ -341,7 +344,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
       final int recordCount = batch.getRecordCount();
 
       // for every remaining row in the partition, count it if it's a peer row
-      for (int row = (batch == first) ? start : 0; row < recordCount && length < remaining; row++, length++) {
+      for (int row = (batch == first) ? start : 0; row < recordCount; row++, length++) {
         if (!isSamePartition(start, first, row, batch) || !isPeer(start, first, row, batch)) {
           return length;
         }
