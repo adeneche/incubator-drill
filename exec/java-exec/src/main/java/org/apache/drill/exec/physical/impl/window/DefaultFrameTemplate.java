@@ -43,6 +43,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
   private int frameLastRow;
 
+  // true when at least one window function needs to process all batches of a partition before passing any batch downstream
   private boolean requireFullPartition;
 
   /**
@@ -50,7 +51,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    * Can span over multiple batches, so we may need to keep it between calls to doWork()
    */
   private Partition partition;
-  private boolean lastBatch;
 
   @Override
   public void setup(final List<WindowDataBatch> batches, final VectorContainer container, final OperatorContext oContext,
@@ -115,11 +115,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
         if (!requireFullPartition) {
           // we didn't compute the whole partition length in the previous partition, we need to update the length now
-          long length = computePartitionSize(currentRow);
-          assert length > 0 : "partition size =0 at the beginning of a batch! this should be impossible";
-
-          // we just need to check if this is the last batch of the partition
-          partition.updateLength(length, lastBatch);
+          updatePartitionSize(partition, currentRow);
         }
       } else {
         newPartition(current, currentRow);
@@ -150,10 +146,9 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   private void newPartition(final WindowDataBatch current, final int currentRow) throws SchemaChangeException {
-    lastBatch = false;
-    final long length = computePartitionSize(currentRow);
+    partition = new Partition();
+    updatePartitionSize(partition, currentRow);
 
-    partition = new Partition(length, !requireFullPartition && !lastBatch);
     setupPartition(current, container);
     copyFirstValueToInternal(currentRow);
   }
@@ -249,21 +244,22 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   /**
-   * @return number of rows that are part of the partition starting at row start of first batch.
-   * If !requiresFullPartition, this method will only count the rows in the current batch
+   * updates partition's length after computing the number of rows for the current the partition starting at the specified
+   * row of the first batch. If !requiresFullPartition, this method will only count the rows in the current batch
    */
-  private long computePartitionSize(final int start) {
+  private void updatePartitionSize(final Partition partition, final int start) {
     logger.trace("compute partition size starting from {} on {} batches", start, batches.size());
 
     // current partition always starts from first batch
     final VectorAccessible first = getCurrent();
 
     long length = 0;
+    boolean lastBatch = false;
+    int row = start;
 
     // count all rows that are in the same partition of start
     // keep increasing length until we find first row of next partition or we reach the very last batch
 
-    int row = start;
     outer:
     for (WindowDataBatch batch : batches) {
       final int recordCount = batch.getRecordCount();
@@ -284,15 +280,13 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
     }
 
     if (!requireFullPartition) {
-      if (row < outputCount || batches.size() == 1) {
-        lastBatch = true;
-      } else {
-        // this is the last batch of current partition if we don't have more rows in next batch
-        lastBatch = !isSamePartition(start, first, 0, batches.get(1));
-      }
+      // this is the last batch of current partition if
+      lastBatch = row < outputCount                           // partition ends before the end of the batch
+        || batches.size() == 1                                // it's the last available batch
+        || !isSamePartition(start, first, 0, batches.get(1)); // next batch contains a different partition
     }
 
-    return length;
+    partition.updateLength(length, !(requireFullPartition || lastBatch));
   }
 
   /**

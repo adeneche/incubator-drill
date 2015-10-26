@@ -111,8 +111,6 @@ public abstract class WindowFunction {
    */
   public boolean canDoWork(final int numBatchesAvailable, final boolean hasOrderBy, final boolean frameEndReached,
                            final boolean partitionEndReached) {
-    //TODO I should enfore this method is never called when requiresFullPartition() returns true,
-    // because it will only return true if partitionEndReached == true
     return partitionEndReached;
   }
 
