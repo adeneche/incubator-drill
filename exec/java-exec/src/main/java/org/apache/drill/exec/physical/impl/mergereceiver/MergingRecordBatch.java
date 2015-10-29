@@ -113,6 +113,8 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
   private long[] inputCounts;
   private long[] outputCounts;
 
+  private boolean shouldStop;
+
   public static enum Metric implements MetricDef{
     BYTES_RECEIVED,
     NUM_SENDERS,
@@ -171,7 +173,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
 
   @Override
   public IterOutcome innerNext() {
-    if (fragProviders.length == 0) {
+    if (fragProviders.length == 0 || shouldStop) {
       return IterOutcome.NONE;
     }
     boolean schemaChanged = false;
@@ -508,12 +510,15 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
   public void kill(final boolean sendUpstream) {
     if (sendUpstream) {
       informSenders();
-    } else {
-      close();
-      for (final RawFragmentBatchProvider provider : fragProviders) {
-        provider.kill(context);
-      }
     }
+
+    // killing providers may unblock senders and let them finish quickly if they are waiting for ACKs
+    close();
+    for (final RawFragmentBatchProvider provider : fragProviders) {
+      provider.kill(context);
+    }
+
+    shouldStop = true;
   }
 
   private void informSenders() {
