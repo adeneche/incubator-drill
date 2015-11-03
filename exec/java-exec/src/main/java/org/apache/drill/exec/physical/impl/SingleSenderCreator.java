@@ -144,6 +144,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
     @Override
     public void receivingFragmentFinished(FragmentHandle handle) {
       done = true;
+      fragmentContext.receiverFinished();
     }
   }
 }
