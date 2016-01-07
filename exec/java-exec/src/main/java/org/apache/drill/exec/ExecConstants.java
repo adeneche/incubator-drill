@@ -209,7 +209,7 @@ public interface ExecConstants {
    */
   String MAX_QUERY_MEMORY_PER_NODE_KEY = "planner.memory.max_query_memory_per_node";
   LongValidator MAX_QUERY_MEMORY_PER_NODE = new RangeLongValidator(
-      MAX_QUERY_MEMORY_PER_NODE_KEY, 1024 * 1024, Long.MAX_VALUE, 2 * 1024 * 1024 * 1024L);
+      MAX_QUERY_MEMORY_PER_NODE_KEY, 1024 * 1024, Long.MAX_VALUE, 4 * 1024 * 1024 * 1024L);
 
   /**
    * Extra query memory per node for non-blocking operators.
