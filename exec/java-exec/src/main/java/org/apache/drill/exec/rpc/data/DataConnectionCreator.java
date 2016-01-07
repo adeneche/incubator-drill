@@ -20,8 +20,10 @@ package org.apache.drill.exec.rpc.data;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
 
+import com.codahale.metrics.Gauge;
 import org.apache.drill.exec.exception.DrillbitStartupException;
 import org.apache.drill.exec.memory.BufferAllocator;
+import org.apache.drill.exec.metrics.DrillMetrics;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.rpc.control.WorkEventBus;
 import org.apache.drill.exec.server.BootStrapContext;
@@ -52,6 +54,13 @@ public class DataConnectionCreator implements Closeable {
     this.allowPortHunting = allowPortHunting;
     this.dataAllocator = context.getAllocator()
         .newChildAllocator("rpc-data", 0, Long.MAX_VALUE);
+
+    DrillMetrics.getInstance().register("rpc.allocator.allocated", new Gauge<Long>() {
+      @Override
+      public Long getValue() {
+        return dataAllocator.getAllocatedMemory();
+      }
+    });
   }
 
   public DrillbitEndpoint start(DrillbitEndpoint partialEndpoint) throws DrillbitStartupException {
