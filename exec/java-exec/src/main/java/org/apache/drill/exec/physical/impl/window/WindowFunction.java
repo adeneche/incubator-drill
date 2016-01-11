@@ -92,6 +92,8 @@ public abstract class WindowFunction {
 
   abstract void generateCode(final ClassGenerator<WindowFramer> cg);
 
+  abstract boolean supportsCustomFrames();
+
   /**
    * @param hasOrderBy window definition contains an ORDER BY clause
    * @return true if this window function requires all batches of current partition to be available before processing
@@ -161,6 +163,11 @@ public abstract class WindowFunction {
     public boolean canDoWork(int numBatchesAvailable, boolean hasOrderBy, boolean frameEndReached, boolean partitionEndReached) {
       return partitionEndReached || (hasOrderBy && frameEndReached);
     }
+
+    @Override
+    boolean supportsCustomFrames() {
+      return true;
+    }
   }
 
   static class Ranking extends WindowFunction {
@@ -217,6 +224,11 @@ public abstract class WindowFunction {
       // for CUME_DIST, PERCENT_RANK and NTILE we need the full partition
       // otherwise we can process the first batch immediately
       return partitionEndReached || ! requiresFullPartition(hasOrderBy);
+    }
+
+    @Override
+    boolean supportsCustomFrames() {
+      return false;
     }
   }
 
@@ -315,6 +327,11 @@ public abstract class WindowFunction {
     public boolean canDoWork(int numBatchesAvailable, final boolean hasOrderBy, boolean frameEndReached, boolean partitionEndReached) {
       return partitionEndReached || numBatchesAvailable > 1;
     }
+
+    @Override
+    boolean supportsCustomFrames() {
+      return false;
+    }
   }
 
   static class Lag extends WindowFunction {
@@ -381,6 +398,11 @@ public abstract class WindowFunction {
       assert numBatchesAvailable > 0 : "canDoWork() should not be called when numBatchesAvailable == 0";
       return true;
     }
+
+    @Override
+    boolean supportsCustomFrames() {
+      return false;
+    }
   }
 
   static class LastValue extends WindowFunction {
@@ -419,6 +441,7 @@ public abstract class WindowFunction {
       // this will generate the the following, pseudo, code:
       //   write current.source_last_value[frameLastRow] to container.last_value[row]
 
+      //TODO copy one mapping only
       final GeneratorMapping EVAL_INSIDE = GeneratorMapping.create("setupReadLastValue", "readLastValue", null, null);
       final GeneratorMapping EVAL_OUTSIDE = GeneratorMapping.create("setupReadLastValue", "writeLastValue", "resetValues", "cleanup");
       final MappingSet mappingSet = new MappingSet("index", "outIndex", EVAL_INSIDE, EVAL_OUTSIDE, EVAL_INSIDE);
@@ -435,6 +458,11 @@ public abstract class WindowFunction {
     @Override
     public boolean canDoWork(int numBatchesAvailable, boolean hasOrderBy, boolean frameEndReached, boolean partitionEndReached) {
       return partitionEndReached || (hasOrderBy && frameEndReached);
+    }
+
+    @Override
+    boolean supportsCustomFrames() {
+      return true;
     }
   }
 
@@ -514,6 +542,11 @@ public abstract class WindowFunction {
     @Override
     public boolean canDoWork(int numBatchesAvailable, boolean hasOrderBy, boolean frameEndReached, boolean partitionEndReached) {
       assert numBatchesAvailable > 0 : "canDoWork() should not be called when numBatchesAvailable == 0";
+      return true;
+    }
+
+    @Override
+    boolean supportsCustomFrames() {
       return true;
     }
   }
