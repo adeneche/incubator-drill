@@ -350,6 +350,7 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
             } catch(InterruptedException e) {
               return IterOutcome.STOP;
             } catch (OutOfMemoryException e) {
+              convertedBatch.clear();
               throw new OutOfMemoryException(e);
             }
           }
