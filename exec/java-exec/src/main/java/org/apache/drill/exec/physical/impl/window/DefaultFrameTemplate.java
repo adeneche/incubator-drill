@@ -44,6 +44,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   // true when at least one window function needs to process all batches of a partition before passing any batch downstream
   private boolean requireFullPartition;
 
+  //TODO we should only use partition object when we have ranking functions
   /**
    * current partition being processed.</p>
    * Can span over multiple batches, so we may need to keep it between calls to doWork()
@@ -253,9 +254,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
    * @throws SchemaChangeException
    */
   private long countPeers(final int start) throws SchemaChangeException {
-    logger.trace("aggregating rows starting from {}", start);
-    //TODO refactor this
-
     long length = 0;
 
     // a single frame can include rows from multiple batches

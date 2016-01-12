@@ -230,6 +230,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
    * held in memory)
    */
   private boolean canDoWork() {
+    //TODO we should support custom frames too
     if (batches.size() < 2) {
       // we need at least 2 batches even when window functions only need one batch, so we can detect the end of the
       // current partition

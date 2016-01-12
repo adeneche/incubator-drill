@@ -45,6 +45,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   // true when at least one window function needs to process all batches of a partition before passing any batch downstream
   private boolean requireFullPartition;
 
+  //TODO we should get rid of partition object
   /**
    * current partition being processed.</p>
    * Can span over multiple batches, so we may need to keep it between calls to doWork()

@@ -441,10 +441,8 @@ public abstract class WindowFunction {
       // this will generate the the following, pseudo, code:
       //   write current.source_last_value[frameLastRow] to container.last_value[row]
 
-      //TODO copy one mapping only
-      final GeneratorMapping EVAL_INSIDE = GeneratorMapping.create("setupReadLastValue", "readLastValue", null, null);
-      final GeneratorMapping EVAL_OUTSIDE = GeneratorMapping.create("setupReadLastValue", "writeLastValue", "resetValues", "cleanup");
-      final MappingSet mappingSet = new MappingSet("index", "outIndex", EVAL_INSIDE, EVAL_OUTSIDE, EVAL_INSIDE);
+      final GeneratorMapping mapping = GeneratorMapping.create("setupReadLastValue", "writeLastValue", "resetValues", "cleanup");
+      final MappingSet mappingSet = new MappingSet("index", "outIndex", mapping, mapping);
 
       cg.setMappingSet(mappingSet);
       cg.addExpr(writeSourceToLastValue);
