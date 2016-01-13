@@ -497,10 +497,10 @@ public abstract class WindowFunction {
     @Override
     void generateCode(final ClassGenerator<WindowFramer> cg) {
       {
-        // in DefaultFrameTemplate we call setupCopyFirstValue:
-        //   setupCopyFirstValue(current, internal)
-        // and copyFirstValueToInternal:
-        //   copyFirstValueToInternal(currentRow, 0)
+        // in DefaultFrameTemplate we call setupSaveFirstValue:
+        //   setupSaveFirstValue(current, internal)
+        // and saveFirstValue:
+        //   saveFirstValue(currentRow, 0)
         //
         // this will generate the the following, pseudo, code:
         //   write current.source[currentRow] to internal.first_value[0]
@@ -508,7 +508,7 @@ public abstract class WindowFunction {
         // so it basically copies the first value of current partition into the first row of internal.first_value
         // this is especially useful when handling multiple batches for the same partition where we need to keep
         // the first value of the partition somewhere after we release the first batch
-        final GeneratorMapping mapping = GeneratorMapping.create("setupCopyFirstValue", "copyFirstValueToInternal", null, null);
+        final GeneratorMapping mapping = GeneratorMapping.create("setupSaveFirstValue", "saveFirstValue", null, null);
         final MappingSet mappingSet = new MappingSet("index", "0", mapping, mapping);
 
         cg.setMappingSet(mappingSet);
@@ -516,8 +516,8 @@ public abstract class WindowFunction {
       }
 
       {
-        // in DefaultFrameTemplate we call setupPasteValues:
-        //   setupPasteValues(internal, container)
+        // in DefaultFrameTemplate we call setupWriteFirstValue:
+        //   setupWriteFirstValue(internal, container)
         // and outputRow:
         //   outputRow(outIndex)
         //
@@ -525,7 +525,7 @@ public abstract class WindowFunction {
         //   write internal.first_value[0] to container.first_value[outIndex]
         //
         // so it basically copies the value stored in internal.first_value's first row into all rows of container.first_value
-        final GeneratorMapping mapping = GeneratorMapping.create("setupPasteValues", "outputRow", "resetValues", "cleanup");
+        final GeneratorMapping mapping = GeneratorMapping.create("setupWriteFirstValue", "outputRow", "resetValues", "cleanup");
         final MappingSet mappingSet = new MappingSet("0", "outIndex", mapping, mapping);
         cg.setMappingSet(mappingSet);
         cg.addExpr(writeFirstValueToFirstValue);

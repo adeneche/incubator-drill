@@ -30,6 +30,10 @@ import javax.inject.Named;
 import java.util.List;
 
 
+/**
+ * WindowFramer implementation that only supports the default frame. Can be used with LEAD, LAG, ROW_NUMBER, and
+ * all ranking functions
+ */
 public abstract class DefaultFrameTemplate implements WindowFramer {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultFrameTemplate.class);
 
@@ -45,11 +49,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   private boolean requireFullPartition;
 
   //TODO we should only use partition object when we have ranking functions
-  /**
-   * current partition being processed.</p>
-   * Can span over multiple batches, so we may need to keep it between calls to doWork()
-   */
-  private Partition partition;
+  private Partition partition; // current partition being processed
 
   @Override
   public void setup(final List<WindowDataBatch> batches, final VectorContainer container, final OperatorContext oContext,
@@ -76,12 +76,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   /**
-   * processes all rows of current batch:
-   * <ul>
-   *   <li>compute aggregations</li>
-   *   <li>compute window functions</li>
-   *   <li>transfer remaining vectors from current batch to container</li>
-   * </ul>
+   * processes all rows of the first batch.
    */
   @Override
   public void doWork() throws DrillException {
@@ -89,7 +84,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
 
     this.current = batches.get(0);
 
-    // we need to store the record count explicitly, because we release current batch at the end of this call
     outputCount = current.getRecordCount();
 
     while (currentRow < outputCount) {
@@ -133,7 +127,7 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   /**
-   * process all rows (computes and writes aggregation values) of current batch that are part of current partition.
+   * process all rows (computes and writes function values) of current batch that are part of current partition.
    * @param currentRow first unprocessed row
    * @return index of next unprocessed row
    * @throws DrillException if it can't write into the container

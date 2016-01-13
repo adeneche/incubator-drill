@@ -65,10 +65,10 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   private boolean hasOrderBy; // true if window definition contains an order-by clause
   private final List<WindowFunction> functions = Lists.newArrayList();
 
-  private boolean noMoreBatches;
+  private boolean noMoreBatches; // true when downstream returns NONE
   private BatchSchema schema;
 
-  private boolean shouldStop;
+  private boolean shouldStop; // true if we received an early termination request
 
   public WindowFrameRecordBatch(WindowPOP popConfig, FragmentContext context, RecordBatch incoming) throws OutOfMemoryException {
     super(popConfig, context);
@@ -77,41 +77,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   }
 
   /**
-   * Let's assume we have the following 3 batches of data:
-   * <p><pre>
-   * +---------+--------+--------------+--------+
-   * |   b0    |   b1   |      b2      |   b3   |
-   * +----+----+--------+----+----+----+--------+
-   * | p0 | p1 |   p1   | p2 | p3 | p4 |   p5   |
-   * +----+----+--------+----+----+----+--------+
-   * </pre></p>
-   *
-   * batch b0 contains partitions p0 and p1
-   * batch b1 contains partition p1
-   * batch b2 contains partitions p2 p3 and p4
-   * batch b3 contains partition p5
-   *
-   * <p><pre>
-   * when innerNext() is called:
-   *   call next(incoming), we receive and save b0 in a list of WindowDataBatch
-   *     we can't process b0 yet because we don't know if p1 has more rows upstream
-   *   call next(incoming), we receive and save b1
-   *     we can't process b0 yet for the same reason previously stated
-   *   call next(incoming), we receive and save b2
-   *   we process b0 (using the framer) and pass the container downstream
-   * when innerNext() is called:
-   *   we process b1 and pass the container downstream, b0 and b1 are released from memory
-   * when innerNext() is called:
-   *   call next(incoming), we receive and save b3
-   *   we process b2 and pass the container downstream, b2 is released from memory
-   * when innerNext() is called:
-   *   call next(incoming) and receive NONE
-   *   we process b3 and pass the container downstream, b3 is released from memory
-   * when innerNext() is called:
-   *  we return NONE
-   * </pre></p>
-   * Because we only support the default frame, we don't need to reset the aggregations until we reach the end of
-   * a partition. We can safely free a batch as soon as it has been processed.
+   * Hold incoming batches in memory until all window functions are ready to process the batch on top of the queue
    */
   @Override
   public IterOutcome innerNext() {
@@ -194,10 +160,11 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
   private void doWork() throws DrillException {
 
     final WindowDataBatch current = batches.get(0);
+    final int recordCount = current.getRecordCount();
 
-    logger.trace("WindowFramer.doWork() START, num batches {}, current batch has {} rows", batches.size(),
-      current.getRecordCount());
+    logger.trace("WindowFramer.doWork() START, num batches {}, current batch has {} rows", batches.size(), recordCount);
 
+    // allocate outgoing vectors
     for (VectorWrapper<?> w : container) {
       w.getValueVector().allocateNew();
     }
@@ -213,7 +180,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       tp.transfer();
     }
 
-    int recordCount = current.getRecordCount();
+    container.setRecordCount(recordCount);
     for (VectorWrapper<?> v : container) {
       v.getValueVector().getMutator().setValueCount(recordCount);
     }
@@ -295,10 +262,6 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     boolean useDefaultFrame = false; // at least one window function uses the DefaultFrameTemplate
     boolean useCustomFrame = false; // at least one window function uses the CustomFrameTemplate
 
-    container.clear();
-
-    functions.clear();
-
     hasOrderBy = popConfig.getOrderings().length > 0;
 
     // all existing vectors will be transferred to the outgoing container in framer.doWork()
@@ -328,9 +291,8 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       }
     }
 
-    if (container.isSchemaChanged()) {
-      container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
-    }
+    container.buildSchema(BatchSchema.SelectionVectorMode.NONE);
+    container.setRecordCount(0);
 
     // materialize partition by expressions
     for (final NamedExpression ne : popConfig.getWithins()) {
@@ -368,6 +330,7 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       WindowFramer.CUSTOM_TEMPLATE_DEFINITION : WindowFramer.DEFAULT_TEMPLATE_DEFINITION;
     final ClassGenerator<WindowFramer> cg = CodeGenerator.getRoot(definition, context.getFunctionRegistry());
 
+    //TODO should we change isSamePartition/isPeer to rely on setup functions instead of passing batches in each call ?
     {
       // generating framer.isSamePartition()
       final GeneratorMapping IS_SAME_PARTITION_READ = GeneratorMapping.create("isSamePartition", "isSamePartition", null, null);

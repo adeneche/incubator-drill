@@ -30,11 +30,15 @@ import javax.inject.Named;
 import java.util.List;
 
 
+/**
+ * WindowFramer implementation that supports the FRAME clause. Can be used with FIRST_VALUE, LAST_VALUE and
+ * all aggregate functions
+ */
 public abstract class CustomFrameTemplate implements WindowFramer {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultFrameTemplate.class);
 
   private VectorContainer container;
-  private VectorContainer internal;
+  private VectorContainer internal; //TODO we only need to use internal for the frame that exceed current batch limit
   private List<WindowDataBatch> batches;
   private int outputCount; // number of rows in currently/last processed batch
 
@@ -46,10 +50,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   private boolean requireFullPartition;
 
   //TODO we should get rid of partition object
-  /**
-   * current partition being processed.</p>
-   * Can span over multiple batches, so we may need to keep it between calls to doWork()
-   */
   private Partition partition;
 
   @Override
@@ -76,12 +76,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   }
 
   /**
-   * processes all rows of current batch:
-   * <ul>
-   *   <li>compute aggregations</li>
-   *   <li>compute window functions</li>
-   *   <li>transfer remaining vectors from current batch to container</li>
-   * </ul>
+   * processes all rows of the first batch.
    */
   @Override
   public void doWork() throws DrillException {
@@ -89,9 +84,8 @@ public abstract class CustomFrameTemplate implements WindowFramer {
 
     this.current = batches.get(0);
 
-    setupCopyFirstValue(current, internal);
+    setupSaveFirstValue(current, internal);
 
-    // we need to store the record count explicitly, because we release current batch at the end of this call
     outputCount = current.getRecordCount();
 
     while (currentRow < outputCount) {
@@ -121,7 +115,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
     updatePartitionSize(partition, currentRow);
 
     setupPartition(current, container);
-    copyFirstValueToInternal(currentRow);
+    saveFirstValue(currentRow);
   }
 
   private void cleanPartition() {
@@ -143,7 +137,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   private int processPartition(final int currentRow) throws DrillException {
     logger.trace("process partition {}, currentRow: {}, outputCount: {}", partition, currentRow, outputCount);
 
-    setupPasteValues(internal, container);
+    setupWriteFirstValue(internal, container);
 
     int row = currentRow;
 
@@ -160,6 +154,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   private void processRow(final int row) throws DrillException {
     if (partition.isFrameDone()) {
       // because all peer rows share the same frame, we only need to compute and aggregate the frame once
+      //TODO if we have 2 framers, the following computation will be done twice. We should refactor peer counting outside the framers
       final long peers = aggregatePeers(row);
       partition.newFrame(peers);
     }
@@ -233,6 +228,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
 
       // for every remaining row in the partition, count it if it's a peer row
       for (int row = (batch == current) ? start : 0; row < recordCount; row++, length++) {
+        //TODO when no ORDER clause is present, we shouldn't need to call isPeer(), we already know the size of the partition
         if (!isPeer(start, current, row, batch)) {
           break;
         }
@@ -270,8 +266,9 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   public abstract void setupReadLastValue(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
   public abstract void writeLastValue(@Named("index") int index, @Named("outIndex") int outIndex);
 
-  public abstract void setupCopyFirstValue(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
-  public abstract void copyFirstValueToInternal(@Named("index") int index);
+  public abstract void setupSaveFirstValue(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
+  public abstract void saveFirstValue(@Named("index") int index);
+  public abstract void setupWriteFirstValue(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
 
   /**
    * called once for each row after we evaluate all peer rows. Used to write a value in the row
@@ -290,8 +287,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
    */
   public abstract void setupPartition(@Named("incoming") WindowDataBatch incoming,
                                       @Named("outgoing") VectorAccessible outgoing) throws SchemaChangeException;
-
-  public abstract void setupPasteValues(@Named("incoming") VectorAccessible incoming, @Named("outgoing") VectorAccessible outgoing);
 
   /**
    * reset all window functions
