@@ -48,7 +48,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   // true when at least one window function needs to process all batches of a partition before passing any batch downstream
   private boolean requireFullPartition;
 
-  //TODO we should only use partition object when we have ranking functions
   private Partition partition; // current partition being processed
 
   @Override
@@ -68,7 +67,6 @@ public abstract class DefaultFrameTemplate implements WindowFramer {
   }
 
   private void allocateInternal() {
-    // TODO we don't need to allocate all container's vectors, we can pass a specific list of vectors to allocate internally
     for (VectorWrapper<?> w : container) {
       ValueVector vv = internal.addOrGet(w.getField());
       vv.allocateNew();

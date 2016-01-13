@@ -197,7 +197,6 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
    * held in memory)
    */
   private boolean canDoWork() {
-    //TODO we should support custom frames too
     if (batches.size() < 2) {
       // we need at least 2 batches even when window functions only need one batch, so we can detect the end of the
       // current partition
@@ -209,7 +208,6 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
     final VectorAccessible last = batches.get(batches.size() - 1);
     final int lastSize = last.getRecordCount();
 
-    // TODO: samePartition/samePeer should be independent of the framers
     final boolean partitionEndReached = !framers[0].isSamePartition(currentSize - 1, current, lastSize - 1, last);
     final boolean frameEndReached = partitionEndReached || !framers[0].isPeer(currentSize - 1, current, lastSize - 1, last);
 
@@ -330,7 +328,6 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
       WindowFramer.CUSTOM_TEMPLATE_DEFINITION : WindowFramer.DEFAULT_TEMPLATE_DEFINITION;
     final ClassGenerator<WindowFramer> cg = CodeGenerator.getRoot(definition, context.getFunctionRegistry());
 
-    //TODO should we change isSamePartition/isPeer to rely on setup functions instead of passing batches in each call ?
     {
       // generating framer.isSamePartition()
       final GeneratorMapping IS_SAME_PARTITION_READ = GeneratorMapping.create("isSamePartition", "isSamePartition", null, null);
@@ -417,7 +414,6 @@ public class WindowFrameRecordBatch extends AbstractRecordBatch<WindowPOP> {
 
   @Override
   public int getRecordCount() {
-    //TODO we should assert all framers return the same record count equal to the 1st batch record count
     return framers[0].getOutputCount();
   }
 }

@@ -38,7 +38,7 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DefaultFrameTemplate.class);
 
   private VectorContainer container;
-  private VectorContainer internal; //TODO we only need to use internal for the frame that exceed current batch limit
+  private VectorContainer internal;
   private List<WindowDataBatch> batches;
   private int outputCount; // number of rows in currently/last processed batch
 
@@ -49,7 +49,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   // true when at least one window function needs to process all batches of a partition before passing any batch downstream
   private boolean requireFullPartition;
 
-  //TODO we should get rid of partition object
   private Partition partition;
 
   @Override
@@ -68,7 +67,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   }
 
   private void allocateInternal() {
-    // TODO we don't need to allocate all container's vectors, we can pass a specific list of vectors to allocate internally
     for (VectorWrapper<?> w : container) {
       ValueVector vv = internal.addOrGet(w.getField());
       vv.allocateNew();
@@ -154,7 +152,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
   private void processRow(final int row) throws DrillException {
     if (partition.isFrameDone()) {
       // because all peer rows share the same frame, we only need to compute and aggregate the frame once
-      //TODO if we have 2 framers, the following computation will be done twice. We should refactor peer counting outside the framers
       final long peers = aggregatePeers(row);
       partition.newFrame(peers);
     }
@@ -228,7 +225,6 @@ public abstract class CustomFrameTemplate implements WindowFramer {
 
       // for every remaining row in the partition, count it if it's a peer row
       for (int row = (batch == current) ? start : 0; row < recordCount; row++, length++) {
-        //TODO when no ORDER clause is present, we shouldn't need to call isPeer(), we already know the size of the partition
         if (!isPeer(start, current, row, batch)) {
           break;
         }
