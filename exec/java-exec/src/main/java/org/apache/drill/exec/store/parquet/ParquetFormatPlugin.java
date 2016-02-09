@@ -218,9 +218,16 @@ public class ParquetFormatPlugin implements FormatPlugin{
     }
 
     private FileSelection expandSelection(DrillFileSystem fs, FileSelection selection) throws IOException {
-      if (metaDataFileExists(fs, selection.getFirstPath(fs))) {
-        FileStatus metaRootDir = selection.getFirstPath(fs);
-        Path metaFilePath = getMetadataPath(metaRootDir);
+      // when selection contains multiple entries, it should be handled differently
+      Path rootPath;
+      if (selection.getFileStatuses().size() > 1) {
+        rootPath = new Path(selection.getSelectionRoot());
+      } else {
+        rootPath = selection.getFirstPath(fs).getPath();
+      }
+
+      if (fs.isDirectory(rootPath) && metaDataFileExists(fs, rootPath)) {
+        Path metaFilePath = getMetadataPath(rootPath);
 
         // get the metadata for the directory by reading the metadata file
         Metadata.ParquetTableMetadataBase metadata  = Metadata.readBlockMeta(fs, metaFilePath.toString());
@@ -232,7 +239,7 @@ public class ParquetFormatPlugin implements FormatPlugin{
         // file:/a/b.  The reason is that the file names above have been created in the form
         // /a/b/c.parquet and the format of the selection root must match that of the file names
         // otherwise downstream operations such as partition pruning can break.
-        final Path metaRootPath = Path.getPathWithoutSchemeAndAuthority(metaRootDir.getPath());
+        final Path metaRootPath = Path.getPathWithoutSchemeAndAuthority(rootPath);
         final FileSelection newSelection = FileSelection.create(null, fileNames, metaRootPath.toString());
         return ParquetFileSelection.create(newSelection, metadata);
       } else {
@@ -242,12 +249,12 @@ public class ParquetFormatPlugin implements FormatPlugin{
       }
     }
 
-    private Path getMetadataPath(FileStatus dir) {
-      return new Path(dir.getPath(), Metadata.METADATA_FILENAME);
+    private Path getMetadataPath(Path path) {
+      return new Path(path, Metadata.METADATA_FILENAME);
     }
 
-    private boolean metaDataFileExists(FileSystem fs, FileStatus dir) throws IOException {
-      return fs.exists(getMetadataPath(dir));
+    private boolean metaDataFileExists(FileSystem fs, Path path) throws IOException {
+      return fs.exists(getMetadataPath(path));
     }
 
     boolean isDirReadable(DrillFileSystem fs, FileStatus dir) {
@@ -257,7 +264,7 @@ public class ParquetFormatPlugin implements FormatPlugin{
           return true;
         } else {
 
-          if (metaDataFileExists(fs, dir)) {
+          if (metaDataFileExists(fs, dir.getPath())) {
             return true;
           }
           PathFilter filter = new DrillPathFilter();
