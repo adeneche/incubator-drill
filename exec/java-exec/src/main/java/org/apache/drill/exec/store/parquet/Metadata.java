@@ -203,9 +203,9 @@ public class Metadata {
     logger.info("Took {} ms to get file statuses", watch.elapsed(TimeUnit.MILLISECONDS));
     watch.reset();
     watch.start();
-    ParquetTableMetadata_v2 metadata_v1 = getParquetTableMetadata(fileStatuses);
+    ParquetTableMetadata_v2 metadata = getParquetTableMetadata(fileStatuses);
     logger.info("Took {} ms to read file metadata", watch.elapsed(TimeUnit.MILLISECONDS));
-    return metadata_v1;
+    return metadata;
   }
 
   /**
@@ -218,9 +218,8 @@ public class Metadata {
   private ParquetTableMetadata_v2 getParquetTableMetadata(List<FileStatus> fileStatuses)
       throws IOException {
     ParquetTableMetadata_v2 tableMetadata = new ParquetTableMetadata_v2();
-    List<ParquetFileMetadata_v2> fileMetadataList = getParquetFileMetadata_v2(tableMetadata, fileStatuses);
-    tableMetadata.files = fileMetadataList;
-    tableMetadata.directories = new ArrayList<String>();
+    tableMetadata.files = getParquetFileMetadata_v2(tableMetadata, fileStatuses);
+    tableMetadata.directories = Lists.newArrayList();
     return tableMetadata;
   }
 
@@ -536,7 +535,7 @@ public class Metadata {
 
 
   @JsonTypeName("v1")
-  public static class ParquetTableMetadata_v1 extends ParquetTableMetadataBase {
+  private static class ParquetTableMetadata_v1 extends ParquetTableMetadataBase {
     @JsonProperty List<ParquetFileMetadata_v1> files;
     @JsonProperty List<String> directories;
 
@@ -582,7 +581,7 @@ public class Metadata {
   /**
    * Struct which contains the metadata for a single parquet file
    */
-  public static class ParquetFileMetadata_v1 extends ParquetFileMetadata {
+  private static class ParquetFileMetadata_v1 extends ParquetFileMetadata {
     @JsonProperty
     public String path;
     @JsonProperty
@@ -622,7 +621,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a parquet row group
    */
-  public static class RowGroupMetadata_v1 extends RowGroupMetadata {
+  private static class RowGroupMetadata_v1 extends RowGroupMetadata {
     @JsonProperty
     public Long start;
     @JsonProperty
@@ -672,7 +671,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a column in a parquet file
    */
-  public static class ColumnMetadata_v1 extends ColumnMetadata {
+  private static class ColumnMetadata_v1 extends ColumnMetadata {
     @JsonProperty
     public SchemaPath name;
     @JsonProperty
@@ -771,7 +770,7 @@ public class Metadata {
   /**
    * Struct which contains the metadata for an entire parquet directory structure
    */
-  @JsonTypeName("v2") public static class ParquetTableMetadata_v2 extends ParquetTableMetadataBase {
+  @JsonTypeName("v2") private static class ParquetTableMetadata_v2 extends ParquetTableMetadataBase {
     /*
      ColumnTypeInfo is schema information from all the files and row groups, merged into
      one. To get this info, we pass the ParquetTableMetadata object all the way dow to the
@@ -836,7 +835,7 @@ public class Metadata {
   /**
    * Struct which contains the metadata for a single parquet file
    */
-  public static class ParquetFileMetadata_v2 extends ParquetFileMetadata {
+  private static class ParquetFileMetadata_v2 extends ParquetFileMetadata {
     @JsonProperty public String path;
     @JsonProperty public Long length;
     @JsonProperty public List<RowGroupMetadata_v2> rowGroups;
@@ -872,7 +871,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a parquet row group
    */
-  public static class RowGroupMetadata_v2 extends RowGroupMetadata {
+  private static class RowGroupMetadata_v2 extends RowGroupMetadata {
     @JsonProperty public Long start;
     @JsonProperty public Long length;
     @JsonProperty public Long rowCount;
@@ -914,7 +913,7 @@ public class Metadata {
   }
 
 
-  public static class ColumnTypeMetadata_v2 {
+  private static class ColumnTypeMetadata_v2 {
     @JsonProperty public String[] name;
     @JsonProperty public PrimitiveTypeName primitiveType;
     @JsonProperty public OriginalType originalType;
@@ -995,7 +994,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a column in a parquet file
    */
-  public static class ColumnMetadata_v2 extends ColumnMetadata {
+  private static class ColumnMetadata_v2 extends ColumnMetadata {
     // Use a string array for name instead of Schema Path to make serialization easier
     @JsonProperty public String[] name;
     @JsonProperty public Long nulls;
