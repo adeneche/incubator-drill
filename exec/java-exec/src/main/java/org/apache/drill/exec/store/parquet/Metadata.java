@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.store.TimedRunnable;
 import org.apache.drill.exec.store.dfs.DrillPathFilter;
@@ -402,17 +404,29 @@ public class Metadata {
    * @throws IOException
    */
   private void writeFile(ParquetTableMetadata_v2 parquetTableMetadata, Path p) throws IOException {
-    JsonFactory jsonFactory = new JsonFactory();
-    jsonFactory.configure(Feature.AUTO_CLOSE_TARGET, false);
-    jsonFactory.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
-    ObjectMapper mapper = new ObjectMapper(jsonFactory);
-    SimpleModule module = new SimpleModule();
-    module.addSerializer(ColumnMetadata_v2.class, new ColumnMetadata_v2.Serializer());
-    mapper.registerModule(module);
-    FSDataOutputStream os = fs.create(p);
-    mapper.writerWithDefaultPrettyPrinter().writeValue(os, parquetTableMetadata);
-    os.flush();
-    os.close();
+    final boolean USE_PROTO = true;
+    if (USE_PROTO) {
+      MetadataHolder holder = new MetadataHolder();
+      holder.parseFrom(parquetTableMetadata);
+
+      FSDataOutputStream os = fs.create(p);
+      CodedOutputStream codedStream = CodedOutputStream.newInstance(os);
+      holder.writeTo(codedStream);
+      os.flush();
+      os.close();
+    } else {
+      JsonFactory jsonFactory = new JsonFactory();
+      jsonFactory.configure(Feature.AUTO_CLOSE_TARGET, false);
+      jsonFactory.configure(JsonParser.Feature.AUTO_CLOSE_SOURCE, false);
+      ObjectMapper mapper = new ObjectMapper(jsonFactory);
+      SimpleModule module = new SimpleModule();
+      module.addSerializer(ColumnMetadata_v2.class, new ColumnMetadata_v2.Serializer());
+      mapper.registerModule(module);
+      FSDataOutputStream os = fs.create(p);
+      mapper.writerWithDefaultPrettyPrinter().writeValue(os, parquetTableMetadata);
+      os.flush();
+      os.close();
+    }
   }
 
   /**
@@ -423,23 +437,35 @@ public class Metadata {
    * @throws IOException
    */
   private ParquetTableMetadataBase readBlockMeta(String path) throws IOException {
-    Stopwatch timer = Stopwatch.createStarted();
-    Path p = new Path(path);
-    ObjectMapper mapper = new ObjectMapper();
+    final boolean USE_PROTO = true;
+    final Stopwatch timer = Stopwatch.createStarted();
+    final Path p = new Path(path);
+    ParquetTableMetadataBase parquetTableMetadata;
 
-    final SimpleModule serialModule = new SimpleModule();
-    serialModule.addDeserializer(SchemaPath.class, new SchemaPath.De());
-    serialModule.addKeyDeserializer(ColumnTypeMetadata_v2.Key.class, new ColumnTypeMetadata_v2.Key.DeSerializer());
+    if (USE_PROTO) {
+      FSDataInputStream is = fs.open(p);
+      final CodedInputStream codedStream = CodedInputStream.newInstance(is);
+      final MetadataHolder holder = new MetadataHolder();
+      holder.parseFrom(codedStream);
+      parquetTableMetadata = holder.toParquetTableMetadata();
+    } else {
+      ObjectMapper mapper = new ObjectMapper();
 
-    AfterburnerModule module = new AfterburnerModule();
-    module.setUseOptimizedBeanDeserializer(true);
+      final SimpleModule serialModule = new SimpleModule();
+      serialModule.addDeserializer(SchemaPath.class, new SchemaPath.De());
+      serialModule.addKeyDeserializer(ColumnTypeMetadata_v2.Key.class, new ColumnTypeMetadata_v2.Key.DeSerializer());
 
-    mapper.registerModule(serialModule);
-    mapper.registerModule(module);
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    FSDataInputStream is = fs.open(p);
+      AfterburnerModule module = new AfterburnerModule();
+      module.setUseOptimizedBeanDeserializer(true);
 
-    ParquetTableMetadataBase parquetTableMetadata = mapper.readValue(is, ParquetTableMetadataBase.class);
+      mapper.registerModule(serialModule);
+      mapper.registerModule(module);
+      mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+      FSDataInputStream is = fs.open(p);
+
+      parquetTableMetadata = mapper.readValue(is, ParquetTableMetadataBase.class);
+    }
+
     logger.info("Took {} ms to read metadata from cache file", timer.elapsed(TimeUnit.MILLISECONDS));
     timer.stop();
     if (tableModified(parquetTableMetadata, p)) {
@@ -770,13 +796,13 @@ public class Metadata {
   /**
    * Struct which contains the metadata for an entire parquet directory structure
    */
-  @JsonTypeName("v2") private static class ParquetTableMetadata_v2 extends ParquetTableMetadataBase {
+  @JsonTypeName("v2") static class ParquetTableMetadata_v2 extends ParquetTableMetadataBase {
     /*
      ColumnTypeInfo is schema information from all the files and row groups, merged into
      one. To get this info, we pass the ParquetTableMetadata object all the way dow to the
      RowGroup and the column type is built there as it is read from the footer.
      */
-    @JsonProperty public ConcurrentHashMap<ColumnTypeMetadata_v2.Key, ColumnTypeMetadata_v2> columnTypeInfo;
+    @JsonProperty public Map<ColumnTypeMetadata_v2.Key, ColumnTypeMetadata_v2> columnTypeInfo;
     @JsonProperty List<ParquetFileMetadata_v2> files;
     @JsonProperty List<String> directories;
 
@@ -792,7 +818,7 @@ public class Metadata {
     }
 
     public ParquetTableMetadata_v2(List<ParquetFileMetadata_v2> files, List<String> directories,
-        ConcurrentHashMap<ColumnTypeMetadata_v2.Key, ColumnTypeMetadata_v2> columnTypeInfo) {
+        Map<ColumnTypeMetadata_v2.Key, ColumnTypeMetadata_v2> columnTypeInfo) {
       this.files = files;
       this.directories = directories;
       this.columnTypeInfo = columnTypeInfo;
@@ -835,7 +861,7 @@ public class Metadata {
   /**
    * Struct which contains the metadata for a single parquet file
    */
-  private static class ParquetFileMetadata_v2 extends ParquetFileMetadata {
+  static class ParquetFileMetadata_v2 extends ParquetFileMetadata {
     @JsonProperty public String path;
     @JsonProperty public Long length;
     @JsonProperty public List<RowGroupMetadata_v2> rowGroups;
@@ -871,7 +897,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a parquet row group
    */
-  private static class RowGroupMetadata_v2 extends RowGroupMetadata {
+  static class RowGroupMetadata_v2 extends RowGroupMetadata {
     @JsonProperty public Long start;
     @JsonProperty public Long length;
     @JsonProperty public Long rowCount;
@@ -913,7 +939,7 @@ public class Metadata {
   }
 
 
-  private static class ColumnTypeMetadata_v2 {
+  static class ColumnTypeMetadata_v2 {
     @JsonProperty public String[] name;
     @JsonProperty public PrimitiveTypeName primitiveType;
     @JsonProperty public OriginalType originalType;
@@ -932,11 +958,11 @@ public class Metadata {
       this.key = new Key(name);
     }
 
-    @JsonIgnore private Key key() {
+    @JsonIgnore Key key() {
       return this.key;
     }
 
-    private static class Key {
+    static class Key {
       private String[] name;
       private int hashCode = 0;
 
@@ -994,7 +1020,7 @@ public class Metadata {
   /**
    * A struct that contains the metadata for a column in a parquet file
    */
-  private static class ColumnMetadata_v2 extends ColumnMetadata {
+  static class ColumnMetadata_v2 extends ColumnMetadata {
     // Use a string array for name instead of Schema Path to make serialization easier
     @JsonProperty public String[] name;
     @JsonProperty public Long nulls;
