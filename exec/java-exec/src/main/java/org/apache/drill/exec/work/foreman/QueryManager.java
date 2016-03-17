@@ -485,7 +485,8 @@ public class QueryManager implements AutoCloseable {
   private final FragmentStatusListener fragmentStatusListener = new FragmentStatusListener() {
     @Override
     public void statusUpdate(final FragmentStatus status) {
-      logger.debug("New fragment status was provided to QueryManager of {}", status);
+      logger.debug("New fragment status was provided to QueryManager of fragment:{}:{}, state:{}",
+        status.getHandle().getMajorFragmentId(), status.getHandle().getMinorFragmentId(), status.getProfile().getState());
       switch(status.getProfile().getState()) {
       case AWAITING_ALLOCATION:
       case RUNNING:
