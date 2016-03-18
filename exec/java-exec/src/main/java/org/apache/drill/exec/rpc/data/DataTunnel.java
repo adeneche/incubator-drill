@@ -125,6 +125,7 @@ public class DataTunnel {
     @Override
     public void failed(RpcException ex) {
       sendingSemaphore.release();
+      logger.warn("released sendingSemaphore. New count {}", sendingSemaphore.availablePermits());
       inner.failed(ex);
     }
 
