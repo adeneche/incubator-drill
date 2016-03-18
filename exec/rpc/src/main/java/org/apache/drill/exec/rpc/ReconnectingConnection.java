@@ -76,7 +76,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
         cmd.connectionAvailable(connection);
 
       } else {
-//        logger.debug("No connection active, opening client connection.");
+        logger.warn("No connection active, opening client connection.");
         BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> client = getNewClient();
         ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<R, C>(cmd);
         client.connectAsClient(future, handshake, host, port);
