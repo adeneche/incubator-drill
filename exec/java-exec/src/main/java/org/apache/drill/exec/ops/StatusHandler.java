@@ -38,6 +38,7 @@ public class StatusHandler implements RpcOutcomeListener<Ack> {
 
   @Override
   public void failed(RpcException ex) {
+    logger.error("transmission failed", ex);
     sendingAccountor.decrement();
     consumer.accept(ex);
   }
