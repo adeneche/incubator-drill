@@ -236,6 +236,9 @@ public abstract class BasicClient<T extends EnumLite, R extends RemoteConnection
             logger.error("Failed to establish connection", ex);
             l.connectionFailed(FailureType.CONNECTION, ex);
             break;
+          } catch (final Throwable up) {
+            logger.error("THERE'S THE SUGER!", up);
+            throw up;
           }
         }
 

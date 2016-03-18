@@ -73,6 +73,9 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     synchronized (this) {
       connection = connectionHolder.get();
       if (connection != null) {
+        if (!connection.isActive()) {
+          logger.error("trying to run a command using a non active connection!");
+        }
         cmd.connectionAvailable(connection);
 
       } else {
@@ -114,7 +117,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
           //        logger.debug("Waiting for connection.");
           CONNECTION_TYPE connection = this.get(remainingWaitTimeMills, TimeUnit.MILLISECONDS);
 
-          if (connection == null) {
+          if (connection == null || !connection.isActive()) {
             logger.warn("RECONNECTING Connection failed.");
           } else {
             //          logger.debug("Connection received. {}", connection);
