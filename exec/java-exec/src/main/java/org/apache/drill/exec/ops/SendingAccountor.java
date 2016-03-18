@@ -45,7 +45,7 @@ class SendingAccountor {
       boolean isInterrupted = false;
       while(waitForBatches != 0) {
         try {
-          logger.warn("waiting for {} batches to be sent", waitForBatches);
+          logger.warn("waiting for {} batches to be sent", waitForBatches - wait.availablePermits());
           wait.acquire(waitForBatches);
           waitForBatches = batchesSent.addAndGet(-1 * waitForBatches);
         } catch (InterruptedException e) {
