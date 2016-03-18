@@ -53,12 +53,12 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
   protected abstract BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> getNewClient();
 
   public <R extends MessageLite, C extends RpcCommand<R, CONNECTION_TYPE>> void runCommand(C cmd) {
-//    if(logger.isDebugEnabled()) logger.debug(String.format("Running command %s sending to host %s:%d", cmd, host, port));
+    logger.debug(String.format("Running command %s sending to host %s:%d", cmd, host, port));
     CONNECTION_TYPE connection = connectionHolder.get();
     if (connection != null) {
       if (connection.isActive()) {
         cmd.connectionAvailable(connection);
-//        logger.debug("Connection available and active, command run inline.");
+        logger.debug("Connection available and active, command run inline.");
         return;
       } else {
         // remove the old connection. (don't worry if we fail since someone else should have done it.
