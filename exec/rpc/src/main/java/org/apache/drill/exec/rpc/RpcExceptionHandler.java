@@ -32,8 +32,8 @@ public class RpcExceptionHandler<C extends RemoteConnection> implements ChannelH
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
     if(!ctx.channel().isOpen() || cause.getMessage().equals("Connection reset by peer")){
-      logger.warn("Exception occurred with closed channel.  Connection: {}", connection.getName(), cause);
-      return;
+      logger.warn("Exception occurred with closed channel.  Connection: {}[{}]. connection.active={}",
+        connection.getName(), System.identityHashCode(connection), connection.isActive(), cause);
     }else{
       logger.error("Exception in RPC communication.  Connection: {}.  Closing connection.", connection.getName(), cause);
       ctx.close();

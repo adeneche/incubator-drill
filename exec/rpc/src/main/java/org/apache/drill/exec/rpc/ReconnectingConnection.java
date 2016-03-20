@@ -58,7 +58,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     if (connection != null) {
       if (connection.isActive()) {
         cmd.connectionAvailable(connection);
-        logger.debug("Connection available and active, command run inline.");
+        logger.debug("Connection available {} and active, command run inline.", System.identityHashCode(connection));
         return;
       } else {
         // remove the old connection. (don't worry if we fail since someone else should have done it.
