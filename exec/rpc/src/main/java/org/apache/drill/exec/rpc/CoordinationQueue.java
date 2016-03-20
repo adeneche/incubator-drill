@@ -84,6 +84,7 @@ public class CoordinationQueue {
       if (!future.isSuccess()) {
         removeFromMap(coordinationId);
         if (future.channel().isActive()) {
+          logger.error("Future failed yet channel active");
            throw new RpcException("Future failed") ;
         } else {
           setException(new ChannelClosedException());
