@@ -43,8 +43,11 @@ public abstract class ListeningCommand<T extends MessageLite, C extends RemoteCo
     connectionAvailable(connection);
   }
 
-  private class DeferredRpcOutcome implements RpcOutcomeListener<T> {
+  public class DeferredRpcOutcome implements RpcOutcomeListener<T> {
 
+    public RpcOutcomeListener<T> getListener() {
+      return listener;
+    }
     @Override
     public void failed(RpcException ex) {
       listener.failed(ex);

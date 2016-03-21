@@ -99,6 +99,8 @@ public class DataTunnel {
       return StatusHandler.class.cast(listener).fragmentName;
     } else if (ThrottlingOutcomeListener.class.isInstance(listener)) {
       return extractFragmentName(ThrottlingOutcomeListener.class.cast(listener).inner);
+    } else if (ListeningCommand.DeferredRpcOutcome.class.isInstance(listener)) {
+      return extractFragmentName(ListeningCommand.DeferredRpcOutcome.class.cast(listener).getListener());
     }
     return null;
   }
