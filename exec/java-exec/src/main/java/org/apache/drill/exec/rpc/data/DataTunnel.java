@@ -95,13 +95,17 @@ public class DataTunnel {
   }
 
   private void logAcquireSemaphore(final RpcOutcomeListener<Ack> outcomeListener) {
-    final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
-    logger.debug("ACQUIRE sending semaphore: permits {}. fragment: {}", sendingSemaphore.availablePermits(), fragmentName);
+    if (StatusHandler.class.isInstance(outcomeListener)) {
+      final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
+      logger.debug("ACQUIRE sending semaphore: permits {}. fragment: {}", sendingSemaphore.availablePermits(), fragmentName);
+    }
   }
 
   private void logReleaseSemaphore(final String state, final RpcOutcomeListener<Ack> outcomeListener) {
-    final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
-    logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}", state, sendingSemaphore.availablePermits(), fragmentName);
+    if (StatusHandler.class.isInstance(outcomeListener)) {
+      final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
+      logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}", state, sendingSemaphore.availablePermits(), fragmentName);
+    }
   }
 
   private class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
