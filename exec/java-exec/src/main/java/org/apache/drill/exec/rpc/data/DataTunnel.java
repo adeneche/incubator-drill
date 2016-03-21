@@ -98,7 +98,8 @@ public class DataTunnel {
     if (StatusHandler.class.isInstance(listener)) {
       return StatusHandler.class.cast(listener).fragmentName;
     } else if (ThrottlingOutcomeListener.class.isInstance(listener)) {
-      return extractFragmentName(ThrottlingOutcomeListener.class.cast(listener).inner);
+      final ThrottlingOutcomeListener throttlingListener = ThrottlingOutcomeListener.class.cast(listener);
+      return extractFragmentName(throttlingListener.inner) + " batch=" + throttlingListener.batchId;
     } else if (ListeningCommand.DeferredRpcOutcome.class.isInstance(listener)) {
       return extractFragmentName(ListeningCommand.DeferredRpcOutcome.class.cast(listener).getListener());
     }
@@ -120,11 +121,13 @@ public class DataTunnel {
   }
 
   private class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
-    RpcOutcomeListener<Ack> inner;
+    final RpcOutcomeListener<Ack> inner;
+    final int batchId;
 
-    public ThrottlingOutcomeListener(RpcOutcomeListener<Ack> inner) {
+    public ThrottlingOutcomeListener(RpcOutcomeListener<Ack> inner, final FragmentWritableBatch batch) {
       super();
       this.inner = inner;
+      this.batchId = System.identityHashCode(batch);
     }
 
     @Override
