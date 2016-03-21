@@ -119,7 +119,7 @@ public class DataTunnel {
     }
   }
 
-  private class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
+  public class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
     final RpcOutcomeListener<Ack> inner;
     final int batchId;
 
@@ -148,6 +148,11 @@ public class DataTunnel {
       sendingSemaphore.release();
       logReleaseSemaphore("INTERRUPTED", this);
       inner.interrupted(e);
+    }
+
+    @Override
+    public String toString() {
+      return Integer.toString(batchId);
     }
   }
 

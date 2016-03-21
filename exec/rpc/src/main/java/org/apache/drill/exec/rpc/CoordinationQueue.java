@@ -36,7 +36,7 @@ public class CoordinationQueue {
   private final Map<Integer, RpcOutcome<?>> map;
 
   public CoordinationQueue(int segmentSize, int segmentCount) {
-    map = new ConcurrentHashMap<Integer, RpcOutcome<?>>(segmentSize, 0.75f, segmentCount);
+    map = new ConcurrentHashMap<>(segmentSize, 0.75f, segmentCount);
   }
 
   void channelClosed(Throwable ex) {
@@ -91,6 +91,8 @@ public class CoordinationQueue {
         }
       }
     }
+
+
 
     @SuppressWarnings("unchecked")
     @Override

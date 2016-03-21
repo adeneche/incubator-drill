@@ -122,6 +122,9 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
       Preconditions.checkNotNull(protobufBody);
       ChannelListenerWithCoordinationId futureListener = queue.get(listener, clazz, connection);
+
+      // display batchId -> coordinationId so we can use it
+      logger.debug("sinding batch {} with coordinationId {} ", listener.toString(), futureListener.getCoordinationId());
       OutboundRpcMessage m = new OutboundRpcMessage(RpcMode.REQUEST, rpcType, futureListener.getCoordinationId(), protobufBody, dataBodies);
       ChannelFuture channelFuture = connection.getChannel().writeAndFlush(m);
       channelFuture.addListener(futureListener);
