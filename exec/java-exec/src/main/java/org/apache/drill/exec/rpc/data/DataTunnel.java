@@ -97,9 +97,6 @@ public class DataTunnel {
   private static String extractFragmentName(final RpcOutcomeListener<Ack> listener) {
     if (StatusHandler.class.isInstance(listener)) {
       return StatusHandler.class.cast(listener).fragmentName;
-    } else if (ThrottlingOutcomeListener.class.isInstance(listener)) {
-      final ThrottlingOutcomeListener throttlingListener = ThrottlingOutcomeListener.class.cast(listener);
-      return extractFragmentName(throttlingListener.inner) + " batch=" + throttlingListener.batchId;
     } else if (ListeningCommand.DeferredRpcOutcome.class.isInstance(listener)) {
       return extractFragmentName(ListeningCommand.DeferredRpcOutcome.class.cast(listener).getListener());
     }
@@ -113,10 +110,11 @@ public class DataTunnel {
     }
   }
 
-  private void logReleaseSemaphore(final String state, final RpcOutcomeListener<Ack> outcomeListener) {
-    final String fragmentName = extractFragmentName(outcomeListener);
+  private void logReleaseSemaphore(final String state, final ThrottlingOutcomeListener outcomeListener) {
+    final String fragmentName = extractFragmentName(outcomeListener.inner);
     if (fragmentName != null) {
-      logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}", state, sendingSemaphore.availablePermits(), fragmentName);
+      logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}. batch: {}",
+        state, sendingSemaphore.availablePermits(), fragmentName, outcomeListener.batchId);
     }
   }
 
@@ -133,21 +131,21 @@ public class DataTunnel {
     @Override
     public void failed(RpcException ex) {
       sendingSemaphore.release();
-      logReleaseSemaphore("FAILED", inner);
+      logReleaseSemaphore("FAILED", this);
       inner.failed(ex);
     }
 
     @Override
     public void success(Ack value, ByteBuf buffer) {
       sendingSemaphore.release();
-      logReleaseSemaphore("SUCCESS", inner);
+      logReleaseSemaphore("SUCCESS", this);
       inner.success(value, buffer);
     }
 
     @Override
     public void interrupted(InterruptedException e) {
       sendingSemaphore.release();
-      logReleaseSemaphore("INTERRUPTED", inner);
+      logReleaseSemaphore("INTERRUPTED", this);
       inner.interrupted(e);
     }
   }
