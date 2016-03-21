@@ -78,7 +78,7 @@ public class DataTunnel {
       }
 
       sendingSemaphore.acquire();
-      logAcquireSemaphore(outcomeListener);
+      logAcquireSemaphore(outcomeListener, batch);
       manager.runCommand(b);
     }catch(final InterruptedException e){
       // Release the buffers first before informing the listener about the interrupt.
@@ -103,10 +103,11 @@ public class DataTunnel {
     return null;
   }
 
-  private void logAcquireSemaphore(final RpcOutcomeListener<Ack> outcomeListener) {
+  private void logAcquireSemaphore(final RpcOutcomeListener<Ack> outcomeListener, final FragmentWritableBatch batch) {
     final String fragmentName = extractFragmentName(outcomeListener);
     if (fragmentName != null) {
-      logger.debug("ACQUIRE sending semaphore: permits {}. fragment: {}", sendingSemaphore.availablePermits(), fragmentName);
+      logger.debug("ACQUIRE sending semaphore: permits {}. fragment: {}. batch: {}",
+        sendingSemaphore.availablePermits(), fragmentName, System.identityHashCode(batch));
     }
   }
 
