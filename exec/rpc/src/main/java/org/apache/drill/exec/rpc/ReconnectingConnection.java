@@ -53,14 +53,18 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
   protected abstract BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> getNewClient();
 
   public <R extends MessageLite, C extends RpcCommand<R, CONNECTION_TYPE>> void runCommand(C cmd) {
-    if (logger.isDebugEnabled() && cmd.getClass().getSimpleName().contains("DataTunnel")) {
-      logger.debug("Running command DataTunnel...");
+    final boolean log = (logger.isDebugEnabled() && cmd.getClass().getSimpleName().contains("DataTunnel"));
+
+    if (log) {
+      logger.debug("Running DataTunnel.send command");
     }
     CONNECTION_TYPE connection = connectionHolder.get();
     if (connection != null) {
       if (connection.isActive()) {
         cmd.connectionAvailable(connection);
-        logger.debug("Connection available {} and active, command run inline.", System.identityHashCode(connection));
+        if (log) {
+          logger.debug("Connection available {} and active, command run inline.", System.identityHashCode(connection));
+        }
         return;
       } else {
         // remove the old connection. (don't worry if we fail since someone else should have done it.
@@ -75,13 +79,15 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     synchronized (this) {
       connection = connectionHolder.get();
       if (connection != null) {
-        if (!connection.isActive()) {
+        if (!connection.isActive() && log) {
           logger.error("trying to run a command using a non active connection!");
         }
         cmd.connectionAvailable(connection);
 
       } else {
-        logger.debug("No connection active, opening client connection.");
+        if (log) {
+          logger.debug("No connection active, opening client connection.");
+        }
         BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> client = getNewClient();
         ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<R, C>(cmd);
         client.connectAsClient(future, handshake, host, port);
