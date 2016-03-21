@@ -53,7 +53,9 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
   protected abstract BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> getNewClient();
 
   public <R extends MessageLite, C extends RpcCommand<R, CONNECTION_TYPE>> void runCommand(C cmd) {
-    logger.debug(String.format("Running command %s sending to host %s:%d", cmd.getClass(), host, port));
+    if (logger.isDebugEnabled() && cmd.getClass().getSimpleName().contains("DataTunnel")) {
+      logger.debug("Running command DataTunnel...");
+    }
     CONNECTION_TYPE connection = connectionHolder.get();
     if (connection != null) {
       if (connection.isActive()) {
@@ -79,15 +81,13 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
         cmd.connectionAvailable(connection);
 
       } else {
-        logger.warn("No connection active, opening client connection.");
+        logger.debug("No connection active, opening client connection.");
         BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> client = getNewClient();
         ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<R, C>(cmd);
         client.connectAsClient(future, handshake, host, port);
         future.waitAndRun();
 //        logger.debug("Connection available and active, command now being run inline.");
       }
-      return;
-
     }
   }
 
