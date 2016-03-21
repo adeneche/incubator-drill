@@ -49,6 +49,7 @@ public abstract class RemoteConnection implements ConnectionThrottle, AutoClosea
       public void operationComplete(Future<? super Void> future) throws Exception {
         // this could possibly overrelease but it doesn't matter since we're only going to do this to ensure that we
         // fail out any pending messages
+        logger.warn("channel closed for connection {}", System.identityHashCode(RemoteConnection.this));
         writeManager.disable();
         writeManager.setWritable(true);
       }
@@ -125,7 +126,7 @@ public abstract class RemoteConnection implements ConnectionThrottle, AutoClosea
 
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
-//      logger.debug("Channel writability changed.", ctx.channel().isWritable());
+      logger.warn("Channel writability changed.", ctx.channel().isWritable());
       writeManager.setWritable(ctx.channel().isWritable());
       ctx.fireChannelWritabilityChanged();
     }

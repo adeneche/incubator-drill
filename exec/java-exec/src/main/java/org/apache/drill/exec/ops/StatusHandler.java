@@ -31,9 +31,12 @@ public class StatusHandler implements RpcOutcomeListener<Ack> {
   private final SendingAccountor sendingAccountor;
   private final Consumer<RpcException> consumer;
 
-  public StatusHandler(Consumer<RpcException> consumer, SendingAccountor sendingAccountor) {
+  public final String fragmentName;
+
+  public StatusHandler(Consumer<RpcException> consumer, SendingAccountor sendingAccountor, final String fragmentName) {
     this.consumer = consumer;
     this.sendingAccountor = sendingAccountor;
+    this.fragmentName = fragmentName;
   }
 
   @Override

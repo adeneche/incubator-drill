@@ -112,6 +112,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     try {
 
       if (!allowInEventLoop && !connection.blockOnNotWritable(listener)) {
+        logger.warn("skipping a message for connection {}", System.identityHashCode(connection));
         // if we're in not in the event loop and we're interrupted while blocking, skip sending this message.
         return;
       }

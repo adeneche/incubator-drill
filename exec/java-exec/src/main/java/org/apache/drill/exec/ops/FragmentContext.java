@@ -101,7 +101,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     }
   };
 
-  private final RpcOutcomeListener<Ack> statusHandler = new StatusHandler(exceptionConsumer, sendingAccountor);
+  private final RpcOutcomeListener<Ack> statusHandler;
   private final AccountingUserConnection accountingUserConnection;
 
   /**
@@ -133,6 +133,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     this.context = dbContext;
     this.queryContext = queryContext;
     this.connection = connection;
+
+    statusHandler = new StatusHandler(exceptionConsumer, sendingAccountor,
+      "frag:" + fragment.getHandle().getMajorFragmentId() + ":" + fragment.getHandle().getMinorFragmentId());
+
     this.accountingUserConnection = new AccountingUserConnection(connection, sendingAccountor, statusHandler);
     this.fragment = fragment;
     this.funcRegistry = funcRegistry;
