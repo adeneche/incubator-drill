@@ -94,16 +94,25 @@ public class DataTunnel {
     }
   }
 
+  private static String extractFragmentName(final RpcOutcomeListener<Ack> listener) {
+    if (StatusHandler.class.isInstance(listener)) {
+      return StatusHandler.class.cast(listener).fragmentName;
+    } else if (ThrottlingOutcomeListener.class.isInstance(listener)) {
+      return extractFragmentName(ThrottlingOutcomeListener.class.cast(listener).inner);
+    }
+    return null;
+  }
+
   private void logAcquireSemaphore(final RpcOutcomeListener<Ack> outcomeListener) {
-    if (StatusHandler.class.isInstance(outcomeListener)) {
-      final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
+    final String fragmentName = extractFragmentName(outcomeListener);
+    if (fragmentName != null) {
       logger.debug("ACQUIRE sending semaphore: permits {}. fragment: {}", sendingSemaphore.availablePermits(), fragmentName);
     }
   }
 
   private void logReleaseSemaphore(final String state, final RpcOutcomeListener<Ack> outcomeListener) {
-    if (StatusHandler.class.isInstance(outcomeListener)) {
-      final String fragmentName = ((StatusHandler) outcomeListener).fragmentName;
+    final String fragmentName = extractFragmentName(outcomeListener);
+    if (fragmentName != null) {
       logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}", state, sendingSemaphore.availablePermits(), fragmentName);
     }
   }
