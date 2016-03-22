@@ -163,7 +163,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
       String msg;
-      if(local!=null) {
+      if(local != null) {
         msg = String.format("Channel closed %s <--> %s.", local, remote);
       }else{
         msg = String.format("Channel closed %s <--> %s.", future.channel().localAddress(), future.channel().remoteAddress());
@@ -171,7 +171,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
       if (RpcBus.this.isClient()) {
         if(local != null) {
-          logger.info(String.format(msg));
+          logger.info(msg + ". {}", queue);
         }
       } else {
         queue.channelClosed(new ChannelClosedException(msg));
@@ -281,7 +281,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       final Channel channel = connection.getChannel();
       final Stopwatch watch = Stopwatch.createStarted();
 
-      logger.debug("decoding {}", msg.coordinationId);
+      logger.debug("decoding for coordinationId {}", msg.coordinationId);
 
       try{
 

@@ -140,7 +140,7 @@ public class DataServer extends BasicServer<RpcType, BitServerConnection> {
   @Override
   protected void handle(BitServerConnection connection, int rpcType, ByteBuf pBody, ByteBuf body, ResponseSender sender) throws RpcException {
     ResponseSenderImpl senderImpl = ResponseSenderImpl.class.cast(sender);
-    logger.debug("handling {}", senderImpl.coordinationId);
+    logger.debug("handling coordinationId {}", senderImpl.coordinationId);
 
     assert rpcType == RpcType.REQ_RECORD_BATCH_VALUE;
 

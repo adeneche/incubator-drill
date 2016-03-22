@@ -44,6 +44,7 @@ public class DataConnectionManager extends ReconnectingConnection<DataClientConn
 
   @Override
   protected DataClient getNewClient() {
+    logger.warn("getting a new DataClient");
     return new DataClient(endpoint, context, new CloseHandlerCreator());
   }
 

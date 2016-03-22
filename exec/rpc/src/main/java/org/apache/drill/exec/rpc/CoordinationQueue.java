@@ -53,6 +53,11 @@ public class CoordinationQueue {
     }
   }
 
+  @Override
+  public String toString() {
+    return "CoordinationQueue: " + map.keySet();
+  }
+
   public <V> ChannelListenerWithCoordinationId get(RpcOutcomeListener<V> handler, Class<V> clazz, RemoteConnection connection) {
     int i = circularInt.getNext();
     RpcListener<V> future = new RpcListener<V>(handler, clazz, i, connection);
