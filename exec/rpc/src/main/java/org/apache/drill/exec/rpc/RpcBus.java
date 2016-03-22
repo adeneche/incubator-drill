@@ -169,13 +169,10 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         msg = String.format("Channel closed %s <--> %s.", future.channel().localAddress(), future.channel().remoteAddress());
       }
 
-//      if (RpcBus.this.isClient()) {
-//        if(local != null) {
-//          logger.info(msg + ". {}", queue);
-//        }
-//      } else {
+      if (RpcBus.this.isClient()) {
+          logger.info(msg + ". {}", queue);
+      }
       queue.channelClosed(new ChannelClosedException(msg));
-//      }
 
       clientConnection.close();
     }
