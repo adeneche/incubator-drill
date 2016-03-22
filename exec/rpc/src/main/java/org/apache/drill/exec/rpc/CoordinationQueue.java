@@ -48,6 +48,7 @@ public class CoordinationQueue {
         e = new RpcException(ex);
       }
       for (RpcOutcome<?> f : map.values()) {
+        logger.warn("failing {}", ((RpcListener) f).handler.toString());
         f.setException(e);
       }
     }
@@ -124,6 +125,7 @@ public class CoordinationQueue {
   }
 
   private RpcOutcome<?> removeFromMap(int coordinationId) {
+    logger.warn("removing {} from coordination queue", coordinationId);
     RpcOutcome<?> rpc = map.remove(coordinationId);
     if (rpc == null) {
       throw new IllegalStateException(

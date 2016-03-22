@@ -89,7 +89,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
           logger.debug("No connection active, opening client connection.");
         }
         BasicClient<?, CONNECTION_TYPE, OUTBOUND_HANDSHAKE, ?> client = getNewClient();
-        ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<R, C>(cmd);
+        ConnectionListeningFuture<R, C> future = new ConnectionListeningFuture<>(cmd);
         client.connectAsClient(future, handshake, host, port);
         future.waitAndRun();
 //        logger.debug("Connection available and active, command now being run inline.");
