@@ -174,6 +174,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       }
       queue.channelClosed(new ChannelClosedException(msg));
 
+      logger.info(msg + ". {}", queue);
+
       clientConnection.close();
     }
 
