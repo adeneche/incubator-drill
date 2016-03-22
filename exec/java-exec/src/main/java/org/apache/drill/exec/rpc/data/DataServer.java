@@ -139,6 +139,8 @@ public class DataServer extends BasicServer<RpcType, BitServerConnection> {
 
   @Override
   protected void handle(BitServerConnection connection, int rpcType, ByteBuf pBody, ByteBuf body, ResponseSender sender) throws RpcException {
+    logger.debug("handling {}", sender.getCoordinationId());
+
     assert rpcType == RpcType.REQ_RECORD_BATCH_VALUE;
 
     final FragmentRecordBatch fragmentBatch = get(pBody, FragmentRecordBatch.PARSER);

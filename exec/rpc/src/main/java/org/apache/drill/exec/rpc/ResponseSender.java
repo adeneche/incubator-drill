@@ -19,6 +19,7 @@ package org.apache.drill.exec.rpc;
 
 
 public interface ResponseSender {
-  public void send(Response r);
+  void send(Response r);
 
+  int getCoordinationId();
 }

@@ -199,6 +199,11 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     public ResponseSenderImpl() {
     }
 
+    @Override
+    public int getCoordinationId() {
+      return coordinationId;
+    }
+
     void set(RemoteConnection connection, int coordinationId){
       this.connection = connection;
       this.coordinationId = coordinationId;
@@ -213,7 +218,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       if (RpcConstants.EXTRA_DEBUGGING) {
         logger.debug("Adding message to outbound buffer. {}", outMessage);
       }
-      logger.debug("Sending response with Sender {}", System.identityHashCode(this));
+//      logger.debug("Sending response with Sender {}", System.identityHashCode(this));
+      logger.debug("sending response for coordinationId={} using connection(active={})", coordinationId, connection.isActive());
       connection.getChannel().writeAndFlush(outMessage);
     }
 
@@ -280,6 +286,8 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
       }
       final Channel channel = connection.getChannel();
       final Stopwatch watch = Stopwatch.createStarted();
+
+      logger.debug("decoding {}", msg.coordinationId);
 
       try{
 
