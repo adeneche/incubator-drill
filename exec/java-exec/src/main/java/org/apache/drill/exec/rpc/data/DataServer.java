@@ -169,11 +169,14 @@ public class DataServer extends BasicServer<RpcType, BitServerConnection> {
               fragmentBatch.getReceivingMinorFragmentIdList()), e);
       ack.clear();
 
-      logger.debug("sending response for coordinationId={} using connection(active={})",
+      logger.debug("sending FAILURE for coordinationId={} using connection(active={})",
         senderImpl.coordinationId, senderImpl.connection.isActive());
 
       sender.send(new Response(RpcType.ACK, Acks.FAIL));
     } finally {
+
+      logger.debug("sending SUCCESS for coordinationId={} using connection(active={})",
+        senderImpl.coordinationId, senderImpl.connection.isActive());
 
       // decrement the extra reference we grabbed at the top.
       ack.sendOk();
