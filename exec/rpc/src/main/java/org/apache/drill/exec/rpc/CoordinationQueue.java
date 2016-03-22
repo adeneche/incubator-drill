@@ -47,8 +47,12 @@ public class CoordinationQueue {
       } else {
         e = new RpcException(ex);
       }
-      for (RpcOutcome<?> f : map.values()) {
-        logger.warn("failing {}", ((RpcListener) f).handler.toString());
+//      for (RpcOutcome<?> f : map.values()) {
+//        f.setException(e);
+//      }
+      for (int coordinationId : map.keySet()) {
+        RpcOutcome<?> f = map.get(coordinationId);
+        logger.warn("failing {}:{}", coordinationId, ((RpcListener) f).handler.toString());
         f.setException(e);
       }
     }
