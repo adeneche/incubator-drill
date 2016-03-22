@@ -139,7 +139,8 @@ public class DataServer extends BasicServer<RpcType, BitServerConnection> {
 
   @Override
   protected void handle(BitServerConnection connection, int rpcType, ByteBuf pBody, ByteBuf body, ResponseSender sender) throws RpcException {
-    logger.debug("handling {}", sender.getCoordinationId());
+    ResponseSenderImpl senderImpl = ResponseSenderImpl.class.cast(sender);
+    logger.debug("handling {}", senderImpl.coordinationId);
 
     assert rpcType == RpcType.REQ_RECORD_BATCH_VALUE;
 
@@ -167,6 +168,10 @@ public class DataServer extends BasicServer<RpcType, BitServerConnection> {
               fragmentBatch.getReceivingMajorFragmentId(),
               fragmentBatch.getReceivingMinorFragmentIdList()), e);
       ack.clear();
+
+      logger.debug("sending response for coordinationId={} using connection(active={})",
+        senderImpl.coordinationId, senderImpl.connection.isActive());
+
       sender.send(new Response(RpcType.ACK, Acks.FAIL));
     } finally {
 

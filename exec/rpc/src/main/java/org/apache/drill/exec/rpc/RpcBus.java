@@ -190,18 +190,13 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     public void recycle();
   }
 
-  private class ResponseSenderImpl implements ResponseSender {
+  public class ResponseSenderImpl implements ResponseSender {
 
-    private RemoteConnection connection;
-    private int coordinationId;
+    public RemoteConnection connection;
+    public int coordinationId;
     private final AtomicBoolean sent = new AtomicBoolean(false);
 
     public ResponseSenderImpl() {
-    }
-
-    @Override
-    public int getCoordinationId() {
-      return coordinationId;
     }
 
     void set(RemoteConnection connection, int coordinationId){
@@ -219,7 +214,6 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
         logger.debug("Adding message to outbound buffer. {}", outMessage);
       }
 //      logger.debug("Sending response with Sender {}", System.identityHashCode(this));
-      logger.debug("sending response for coordinationId={} using connection(active={})", coordinationId, connection.isActive());
       connection.getChannel().writeAndFlush(outMessage);
     }
 
