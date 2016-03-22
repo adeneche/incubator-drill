@@ -118,6 +118,8 @@ public class DataTunnel {
     if (fragmentName != null) {
       logger.debug("RELEASE sending semaphore [{}]: permits {}. fragment: {}. batch: {}",
         state, sendingSemaphore.availablePermits(), fragmentName, outcomeListener.batchId);
+    } else {
+      logger.debug("RELEASE batch {}", outcomeListener.batchId);
     }
   }
 
