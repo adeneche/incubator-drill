@@ -270,6 +270,7 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     @Override
     protected void decode(final ChannelHandlerContext ctx, final InboundRpcMessage msg, final List<Object> output) throws Exception {
       if (!ctx.channel().isOpen()) {
+        logger.debug("received message for coordinationId {} but channel was closed", msg.coordinationId);
         return;
       }
       if (RpcConstants.EXTRA_DEBUGGING) {
