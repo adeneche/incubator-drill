@@ -65,7 +65,7 @@ public class CoordinationQueue {
 
   public <V> ChannelListenerWithCoordinationId get(RpcOutcomeListener<V> handler, Class<V> clazz, RemoteConnection connection) {
     int i = circularInt.getNext();
-    RpcListener<V> future = new RpcListener<V>(handler, clazz, i, connection);
+    RpcListener<V> future = new RpcListener<>(handler, clazz, i, connection);
     Object old = map.put(i, future);
     if (old != null) {
       throw new IllegalStateException(
@@ -92,6 +92,7 @@ public class CoordinationQueue {
     public void operationComplete(ChannelFuture future) throws Exception {
 
       if (!future.isSuccess()) {
+        logger.warn("removing {} from coordination queue (operation complete)", coordinationId);
         removeFromMap(coordinationId);
         if (future.channel().isActive()) {
           logger.error("Future failed yet channel active");
@@ -129,7 +130,6 @@ public class CoordinationQueue {
   }
 
   private RpcOutcome<?> removeFromMap(int coordinationId) {
-    logger.warn("removing {} from coordination queue", coordinationId);
     RpcOutcome<?> rpc = map.remove(coordinationId);
     if (rpc == null) {
       throw new IllegalStateException(
@@ -140,6 +140,7 @@ public class CoordinationQueue {
 
   public <V> RpcOutcome<V> getFuture(int rpcType, int coordinationId, Class<V> clazz) {
 
+    logger.warn("removing {} from coordination queue (getFuture)", coordinationId);
     RpcOutcome<?> rpc = removeFromMap(coordinationId);
     // logger.debug("Got rpc from map {}", rpc);
     Class<?> outcomeClass = rpc.getOutcomeType();
@@ -164,6 +165,7 @@ public class CoordinationQueue {
   public void updateFailedFuture(int coordinationId, DrillPBError failure) {
     // logger.debug("Updating failed future.");
     try {
+      logger.warn("removing {} from coordination queue (updateFailedFuture)", coordinationId);
       RpcOutcome<?> rpc = removeFromMap(coordinationId);
       rpc.setException(new UserRemoteException(failure));
     } catch(Exception ex) {
