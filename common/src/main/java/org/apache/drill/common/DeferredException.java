@@ -84,7 +84,7 @@ public class DeferredException implements AutoCloseable {
           }
           this.exception.addSuppressed(exception);
         }
-      } else {
+      } else if (this.exception != exception){
         this.exception.addSuppressed(exception);
       }
     }
