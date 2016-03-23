@@ -162,21 +162,25 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
     @Override
     public void operationComplete(ChannelFuture future) throws Exception {
-      String msg;
-      if(local != null) {
-        msg = String.format("Channel closed %s <--> %s.", local, remote);
-      }else{
-        msg = String.format("Channel closed %s <--> %s.", future.channel().localAddress(), future.channel().remoteAddress());
-      }
+      try {
+        String msg;
+        if (local != null) {
+          msg = String.format("Channel closed %s <--> %s.", local, remote);
+        } else {
+          msg = String.format("Channel closed %s <--> %s.", future.channel().localAddress(), future.channel().remoteAddress());
+        }
 
-      if (RpcBus.this.isClient()) {
+        if (RpcBus.this.isClient()) {
           logger.info(msg + ". {}", queue);
+        }
+        queue.channelClosed(new ChannelClosedException(msg));
+
+        logger.info(msg + ". {}", queue);
+
+        clientConnection.close();
+      } catch (Throwable th) {
+        logger.error("Exception thrown in ChannelClosedHandler.operationComplete()", th);
       }
-      queue.channelClosed(new ChannelClosedException(msg));
-
-      logger.info(msg + ". {}", queue);
-
-      clientConnection.close();
     }
 
   }
