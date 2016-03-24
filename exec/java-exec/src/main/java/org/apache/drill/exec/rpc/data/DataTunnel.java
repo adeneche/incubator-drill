@@ -126,6 +126,7 @@ public class DataTunnel {
   public class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
     final RpcOutcomeListener<Ack> inner;
     final int batchId;
+    private boolean done;
 
     public ThrottlingOutcomeListener(RpcOutcomeListener<Ack> inner, final FragmentWritableBatch batch) {
       super();
@@ -133,8 +134,16 @@ public class DataTunnel {
       this.batchId = System.identityHashCode(batch);
     }
 
+    private void checkAndSetDone() {
+      if (done) {
+        logger.error("BATCH {} ALREADY PROCESSED", batchId);
+      }
+      done = true;
+    }
+
     @Override
     public void failed(RpcException ex) {
+      checkAndSetDone();
       sendingSemaphore.release();
       logReleaseSemaphore("FAILED", this);
       inner.failed(ex);
@@ -142,6 +151,7 @@ public class DataTunnel {
 
     @Override
     public void success(Ack value, ByteBuf buffer) {
+      checkAndSetDone();
       sendingSemaphore.release();
       logReleaseSemaphore("SUCCESS", this);
       inner.success(value, buffer);
@@ -149,6 +159,7 @@ public class DataTunnel {
 
     @Override
     public void interrupted(InterruptedException e) {
+      checkAndSetDone();
       sendingSemaphore.release();
       logReleaseSemaphore("INTERRUPTED", this);
       inner.interrupted(e);
