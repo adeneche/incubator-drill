@@ -124,7 +124,7 @@ public class DataTunnel {
     }
 
     private void updateStatus(final String newStatus) {
-      if (status != null) {
+      if (status != null && !status.equals(newStatus)) {
         logger.error("DUPLICATE STATUS for {}: {} -> {}", System.identityHashCode(this), status, newStatus);
       }
       status = newStatus;
