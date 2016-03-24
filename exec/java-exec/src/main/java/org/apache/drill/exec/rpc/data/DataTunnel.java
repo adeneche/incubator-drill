@@ -116,26 +116,36 @@ public class DataTunnel {
 
   private class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
     RpcOutcomeListener<Ack> inner;
+    String status = null;
 
     public ThrottlingOutcomeListener(RpcOutcomeListener<Ack> inner) {
       super();
       this.inner = inner;
     }
 
+    private void updateStatus(final String newStatus) {
+      if (status != null) {
+        logger.error("DUPLICATE STATUS for {}: {} -> {}", System.identityHashCode(this), status, newStatus);
+      }
+      status = newStatus;
+    }
     @Override
     public void failed(RpcException ex) {
+      updateStatus("FAILED");
       sendingSemaphore.release();
       inner.failed(ex);
     }
 
     @Override
     public void success(Ack value, ByteBuf buffer) {
+      updateStatus("SUCCESS");
       sendingSemaphore.release();
       inner.success(value, buffer);
     }
 
     @Override
     public void interrupted(InterruptedException e) {
+      updateStatus("INTERRUPTED");
       sendingSemaphore.release();
       inner.interrupted(e);
     }
