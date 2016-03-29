@@ -355,7 +355,7 @@ public class FragmentExecutor implements Runnable {
 
   private synchronized boolean updateState(FragmentState target) {
     final FragmentState current = fragmentState.get();
-    logger.info(fragmentName + ": State change requested {} --> {}", current, target);
+    logger.info(fragmentName + ": State change requested {} --> {}", current, target, Thread.currentThread().getStackTrace());
     switch (target) {
     case CANCELLATION_REQUESTED:
       switch (current) {
