@@ -151,8 +151,7 @@ class DrillStatementImpl extends AvaticaStatement implements DrillStatement,
 
   @Override
   public void cleanUp() {
-    final DrillConnectionImpl connection1 = (DrillConnectionImpl) connection;
-    connection1.openStatementsRegistry.removeStatement(this);
+    connection.openStatementsRegistry.removeStatement(this);
   }
 
   @Override

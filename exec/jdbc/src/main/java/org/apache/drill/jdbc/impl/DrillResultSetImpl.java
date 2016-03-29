@@ -71,9 +71,7 @@ import com.google.common.collect.Queues;
  * Drill's implementation of {@link ResultSet}.
  */
 class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
-  @SuppressWarnings("unused")
-  private static final org.slf4j.Logger logger =
-      org.slf4j.LoggerFactory.getLogger(DrillResultSetImpl.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DrillResultSetImpl.class);
 
   private final DrillConnectionImpl connection;
 
@@ -2021,8 +2019,7 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
 
     @Override
     public void queryIdArrived(QueryId queryId) {
-      logger.debug( "[#{}] Received query ID: {}.",
-                    instanceId, QueryIdHelper.getQueryId( queryId ) );
+      logger.debug( "[#{}] Received query ID: {}.", instanceId, QueryIdHelper.getQueryId( queryId ) );
       this.queryId = queryId;
     }
 
@@ -2038,8 +2035,7 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
     @Override
     public void dataArrived(QueryDataBatch result, ConnectionThrottle throttle) {
       lastReceivedBatchNumber++;
-      logger.debug( "[#{}] Received query data batch #{}: {}.",
-                    instanceId, lastReceivedBatchNumber, result );
+      logger.debug( "[#{}] Received query data batch #{}", instanceId, lastReceivedBatchNumber );
 
       // If we're in a closed state, just release the message.
       if (closed) {
@@ -2056,8 +2052,7 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
       // Throttle server if queue size has exceed threshold.
       if (batchQueue.size() > batchQueueThrottlingThreshold ) {
         if ( startThrottlingIfNot( throttle ) ) {
-          logger.debug( "[#{}] Throttling started at queue size {}.",
-                        instanceId, batchQueue.size() );
+          logger.debug( "[#{}] Throttling started at queue size {}.", instanceId, batchQueue.size() );
         }
       }
 
@@ -2087,8 +2082,7 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
     QueryDataBatch getNext() throws UserException, InterruptedException {
       while (true) {
         if (executionFailureException != null) {
-          logger.debug( "[#{}] Dequeued query failure exception: {}.",
-                        instanceId, executionFailureException );
+          logger.debug( "[#{}] Dequeued query failure exception: {}.", instanceId, executionFailureException );
           throw executionFailureException;
         }
         if (completed && batchQueue.isEmpty()) {
@@ -2097,16 +2091,14 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
           QueryDataBatch qdb = batchQueue.poll(50, TimeUnit.MILLISECONDS);
           if (qdb != null) {
             lastDequeuedBatchNumber++;
-            logger.debug( "[#{}] Dequeued query data batch #{}: {}.",
-                          instanceId, lastDequeuedBatchNumber, qdb );
+            logger.debug( "[#{}] Dequeued query data batch #{}.", instanceId, lastDequeuedBatchNumber );
 
             // Unthrottle server if queue size has dropped enough below threshold:
             if ( batchQueue.size() < batchQueueThrottlingThreshold / 2
                  || batchQueue.size() == 0  // (in case threshold < 2)
                  ) {
               if ( stopThrottlingIfSo() ) {
-                logger.debug( "[#{}] Throttling stopped at queue size {}.",
-                              instanceId, batchQueue.size() );
+                logger.debug( "[#{}] Throttling stopped at queue size {}.", instanceId, batchQueue.size() );
               }
             }
             return qdb;
@@ -2119,8 +2111,7 @@ class DrillResultSetImpl extends AvaticaResultSet implements DrillResultSet {
       logger.debug( "[#{}] Query listener closing.", instanceId );
       closed = true;
       if ( stopThrottlingIfSo() ) {
-        logger.debug( "[#{}] Throttling stopped at close() (at queue size {}).",
-                      instanceId, batchQueue.size() );
+        logger.debug( "[#{}] Throttling stopped at close() (at queue size {}).", instanceId, batchQueue.size() );
       }
       while (!batchQueue.isEmpty()) {
         QueryDataBatch qdb = batchQueue.poll();
