@@ -167,9 +167,13 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
 
       logger.info(msg); // should we leave this at info level ?
 
-      queue.channelClosed(new ChannelClosedException(msg), future.channel());
-
-      clientConnection.close();
+      try {
+        queue.channelClosed(new ChannelClosedException(msg), future.channel());
+        clientConnection.close();
+      } catch (Throwable ex) {
+        logger.error("Something went wrong while handling channel closed", ex);
+        throw ex;
+      }
     }
 
   }
