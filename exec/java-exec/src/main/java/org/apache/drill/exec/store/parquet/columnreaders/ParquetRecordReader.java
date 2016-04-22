@@ -278,7 +278,7 @@ public class ParquetRecordReader extends AbstractRecordReader {
     try {
       ValueVector vector;
       SchemaElement schemaElement;
-      final ArrayList<VarLengthColumn<? extends ValueVector>> varLengthColumns = new ArrayList<>();
+      final ArrayList<VarLengthColumn<?>> varLengthColumns = new ArrayList<>();
       // initialize all of the column read status objects
       boolean fieldFixedLength;
       // the column chunk meta-data is not guaranteed to be in the same order as the columns in the schema
@@ -305,7 +305,7 @@ public class ParquetRecordReader extends AbstractRecordReader {
         }
 
         fieldFixedLength = column.getType() != PrimitiveType.PrimitiveTypeName.BINARY;
-        vector = output.addField(field, (Class<? extends ValueVector>) TypeHelper.getValueVectorClass(type.getMinorType(), type.getMode()));
+        vector = output.addField(field, TypeHelper.getValueVectorClass(type.getMinorType(), type.getMode()));
         if (column.getType() != PrimitiveType.PrimitiveTypeName.BINARY) {
           if (column.getMaxRepetitionLevel() > 0) {
             final RepeatedValueVector repeatedVector = RepeatedValueVector.class.cast(vector);
@@ -336,7 +336,7 @@ public class ParquetRecordReader extends AbstractRecordReader {
           if ( ! columnsFound[i] && !col.equals(STAR_COLUMN)) {
             nullFilledVectors.add((NullableIntVector)output.addField(MaterializedField.create(col.getAsUnescapedPath(),
                     Types.optional(TypeProtos.MinorType.INT)),
-                (Class<? extends ValueVector>) TypeHelper.getValueVectorClass(TypeProtos.MinorType.INT, DataMode.OPTIONAL)));
+                TypeHelper.getValueVectorClass(TypeProtos.MinorType.INT, DataMode.OPTIONAL)));
 
           }
         }
@@ -356,7 +356,7 @@ public class ParquetRecordReader extends AbstractRecordReader {
   public void allocate(Map<String, ValueVector> vectorMap) throws OutOfMemoryException {
     try {
       for (final ValueVector v : vectorMap.values()) {
-        AllocationHelper.allocate(v, recordsPerBatch, 50, 10);
+        v.allocateNew();
       }
     } catch (NullPointerException e) {
       throw new OutOfMemoryException();

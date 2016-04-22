@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.netty.buffer.DrillBuf;
 import org.apache.calcite.rel.RelFieldCollation.Direction;
 import org.apache.drill.common.AutoCloseables;
 import org.apache.drill.common.config.DrillConfig;
@@ -132,7 +133,10 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
   public enum Metric implements MetricDef {
     SPILL_COUNT,            // number of times operator spilled to disk
     PEAK_SIZE_IN_MEMORY,    // peak value for totalSizeInMemory
-    PEAK_BATCHES_IN_MEMORY; // maximum number of batches kept in memory
+    PEAK_BATCHES_IN_MEMORY, // maximum number of batches kept in memory
+    DATA_TOTAL_MEMORY,      // size needed to hold all data in memory
+    USED_MEMORY,
+    SV2_TOTAL_MEMORY;       // size needed to hold SV2 for all data in memory
 
     @Override
     public int metricId() {
@@ -262,6 +266,17 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
     }
   }
 
+  private long getUsedBytes(VectorAccessible batch) {
+    int used = 0;
+    for (VectorWrapper<?> w : batch) {
+      DrillBuf[] bufs = w.getValueVector().getBuffers(false);
+      for (DrillBuf buf : bufs) {
+        used += buf.writerIndex();
+      }
+    }
+    return used;
+  }
+
   @Override
   public IterOutcome innerNext() {
     if (schema != null) {
@@ -309,6 +324,9 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
           return upstream;
         case OK_NEW_SCHEMA:
         case OK:
+          final long memMark0 = oAllocator.getAllocatedMemory();
+          stats.addLongStat(Metric.USED_MEMORY, getUsedBytes(incoming));
+
           VectorContainer convertedBatch;
           // only change in the case that the schema truly changes.  Artificial schema changes are ignored.
           if (upstream == IterOutcome.OK_NEW_SCHEMA && !incoming.getSchema().equals(schema)) {
@@ -341,6 +359,9 @@ public class ExternalSortBatch extends AbstractRecordBatch<ExternalSort> {
             }
             break;
           }
+
+          stats.addLongStat(Metric.DATA_TOTAL_MEMORY, oAllocator.getAllocatedMemory() - memMark0);
+
           SelectionVector2 sv2;
           if (incoming.getSchema().getSelectionVectorMode() == BatchSchema.SelectionVectorMode.TWO_BYTE) {
             sv2 = incoming.getSelectionVector2().clone();

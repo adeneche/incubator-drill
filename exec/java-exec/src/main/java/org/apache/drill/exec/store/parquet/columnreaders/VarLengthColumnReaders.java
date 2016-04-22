@@ -219,15 +219,20 @@ public class VarLengthColumnReaders {
 
     @Override
     public boolean setSafe(int index, DrillBuf value, int start, int length) {
-      if (index >= vector.getValueCapacity()) {
-        return false;
-      }
+//      if (index >= vector.getValueCapacity()) {
+//        return false;
+//      }
 
-      if (usingDictionary) {
-        ByteBuffer buf = currDictValToWrite.toByteBuffer();
-        mutator.setSafe(index, buf, buf.position(), currDictValToWrite.length());
-      } else {
-        mutator.setSafe(index, 1, start, start + length, value);
+      try {
+        if (usingDictionary) {
+          ByteBuffer buf = currDictValToWrite.toByteBuffer();
+          mutator.setSafe(index, buf, buf.position(), currDictValToWrite.length());
+        } else {
+          mutator.setSafe(index, 1, start, start + length, value);
+        }
+      } catch (Exception e) {
+        // we may run out of memory
+        return false;
       }
       return true;
     }
