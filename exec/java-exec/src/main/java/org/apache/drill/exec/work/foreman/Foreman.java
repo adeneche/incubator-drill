@@ -116,6 +116,8 @@ public class Foreman implements Runnable {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final long RPC_WAIT_IN_MSECS_PER_FRAGMENT = 5000;
 
+  private Thread myThreadRef; // Thread that is currently executing the Foreman.
+
   private final QueryId queryId;
   private final String queryIdString;
   private final RunQuery queryRequest;
@@ -228,9 +230,9 @@ public class Foreman implements Runnable {
   @Override
   public void run() {
     // rename the thread we're using for debugging purposes
-    final Thread currentThread = Thread.currentThread();
-    final String originalName = currentThread.getName();
-    currentThread.setName(":foreman");
+    myThreadRef = Thread.currentThread();
+    final String originalName = myThreadRef.getName();
+    myThreadRef.setName(":foreman");
 
     // track how long the query takes
     queryManager.markStartTime();
@@ -303,7 +305,7 @@ public class Foreman implements Runnable {
       }
 
       // restore the thread's original name
-      currentThread.setName(originalName);
+      myThreadRef.setName(originalName);
     }
 
     /*
@@ -1181,6 +1183,12 @@ public class Foreman implements Runnable {
      *   to the user
      */
     public void moveToState(final QueryState newState, final Exception ex) {
+      // if the current thread is the foreman thread, throw an exception
+      // otherwise the foreman will be blocked forever on acceptExternalEvents
+      if (myThreadRef == Thread.currentThread()) {
+        throw UserException.systemError(ex).build(logger);
+      }
+
       acceptExternalEvents.awaitUninterruptibly();
 
       Foreman.this.moveToState(newState, ex);
