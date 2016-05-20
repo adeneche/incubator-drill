@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,8 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.base.Preconditions;
 import org.apache.drill.common.CatastrophicFailure;
 import org.apache.drill.common.DeferredException;
-import org.apache.drill.common.SerializedExecutor;
-import org.apache.drill.common.concurrent.ExtendedLatch;
+import org.apache.drill.common.EventProcessor;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.exec.coord.ClusterCoordinator;
 import org.apache.drill.exec.exception.OutOfMemoryException;
@@ -72,14 +70,10 @@ public class FragmentExecutor implements Runnable {
   private final DeferredException deferredException = new DeferredException();
   private final PlanFragment fragment;
   private final FragmentRoot rootOperator;
-  private final ReceiverExecutor receiverExecutor;
 
   private volatile RootExec root;
   private final AtomicReference<FragmentState> fragmentState = new AtomicReference<>(FragmentState.AWAITING_ALLOCATION);
-  private final ExtendedLatch acceptExternalEvents = new ExtendedLatch();
-
-  // Thread that is currently executing the Fragment. Value is null if the fragment hasn't started running or finished
-  private final AtomicReference<Thread> myThreadRef = new AtomicReference<>(null);
+  private final FragmentEventProcessor eventProcessor = new FragmentEventProcessor();
 
   private final DrillbitStatusListener drillbitStatusListener = new FragmentDrillbitStatusListener();
   private final FragmentHandle fragmentHandle;
@@ -113,7 +107,6 @@ public class FragmentExecutor implements Runnable {
     this.fragment = fragment;
     this.rootOperator = rootOperator;
     this.fragmentName = QueryIdHelper.getQueryIdentifier(context.getHandle());
-    this.receiverExecutor = new ReceiverExecutor(fragmentName, fragmentContext.getExecutor());
     this.fragmentHandle = fragmentContext.getHandle();
     this.drillbitContext = fragmentContext.getDrillbitContext();
     this.clusterCoordinator = drillbitContext.getClusterCoordinator();
@@ -160,32 +153,11 @@ public class FragmentExecutor implements Runnable {
   public void cancel() {
     final boolean thisIsOnlyThread = hasCloseoutThread.compareAndSet(false, true);
 
-    if (!thisIsOnlyThread) {
-      acceptExternalEvents.awaitUninterruptibly();
-
-      /*
-       * We set the cancel requested flag but the actual cancellation is managed by the run() loop, if called.
-       */
-      updateState(FragmentState.CANCELLATION_REQUESTED);
-
-      /*
-       * Interrupt the thread so that it exits from any blocking operation it could be executing currently. We
-       * synchronize here to ensure we don't accidentally create a race condition where we interrupt the close out
-       * procedure of the main thread.
-       */
-      synchronized (myThreadRef) {
-        final Thread myThread = myThreadRef.get();
-        if (myThread != null) {
-          logger.debug("Interrupting fragment thread {}", myThread.getName());
-          myThread.interrupt();
-        }
-      }
+    if (thisIsOnlyThread) {
+      eventProcessor.cancelAndFinish();
+      eventProcessor.start();
     } else {
-      // countdown so receiver fragment finished can proceed.
-      acceptExternalEvents.countDown();
-
-      updateState(FragmentState.CANCELLATION_REQUESTED);
-      cleanup(FragmentState.FINISHED);
+      eventProcessor.cancel();
     }
   }
 
@@ -215,7 +187,7 @@ public class FragmentExecutor implements Runnable {
    * @param handle The downstream FragmentHandle of the Fragment that needs no more records from this Fragment.
    */
   public void receivingFragmentFinished(final FragmentHandle handle) {
-    receiverExecutor.submitReceiverFinished(handle);
+    eventProcessor.receiverFinished(handle);
   }
 
   static class FIFOTask implements Runnable, Comparable {
@@ -287,7 +259,7 @@ public class FragmentExecutor implements Runnable {
       clusterCoordinator.addDrillbitStatusListener(drillbitStatusListener);
       updateState(FragmentState.RUNNING);
 
-      acceptExternalEvents.countDown();
+      eventProcessor.start();
       injector.injectPause(fragmentContext.getExecutionControls(), "fragment-running", logger);
 
       final DrillbitEndpoint endpoint = drillbitContext.getEndpoint();
@@ -409,27 +381,14 @@ public class FragmentExecutor implements Runnable {
     }
   }
 
-  protected void onComplete() {
-    // no longer allow this thread to be interrupted. We synchronize here to make sure that cancel can't set an
-    // interruption after we have moved beyond this block.
-    final Thread thread;
-    synchronized (myThreadRef) {
-      thread = myThreadRef.get();
-      myThreadRef.set(null);
-      Thread.interrupted();
-    }
-
+  private void onComplete() {
     // We need to sure we countDown at least once. We'll do it here to guarantee that.
-    acceptExternalEvents.countDown();
+    eventProcessor.start();
 
     // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
     cleanup(FragmentState.FINISHED);
 
     clusterCoordinator.removeDrillbitStatusListener(drillbitStatusListener);
-    if (thread != null) {
-//      thread.setName(originalThreadName);
-    }
-
   }
 
   /**
@@ -612,45 +571,63 @@ public class FragmentExecutor implements Runnable {
     }
   }
 
-  private class ReceiverExecutor extends SerializedExecutor {
-
-    public ReceiverExecutor(String name, Executor underlyingExecutor) {
-      super(name, underlyingExecutor);
-    }
-
-    @Override
-    protected void runException(Runnable command, Throwable t) {
-      logger.error("Failure running with exception of command {}", command, t);
-    }
-
-    public void submitReceiverFinished(FragmentHandle handle){
-      execute(new ReceiverFinished(handle));
-    }
+  private enum EVENT_TYPE {
+    CANCEL,
+    CANCEL_AND_FINISH,
+    RECEIVER_FINISHED
   }
 
-  private class ReceiverFinished implements Runnable {
-    final FragmentHandle handle;
+  private class FragmentEvent {
+    private final EVENT_TYPE type;
+    private final FragmentHandle handle;
 
-    public ReceiverFinished(FragmentHandle handle) {
-      super();
+    FragmentEvent(EVENT_TYPE type, FragmentHandle handle) {
+      this.type = type;
       this.handle = handle;
     }
-
-    @Override
-    public void run() {
-      acceptExternalEvents.awaitUninterruptibly();
-
-      if (root != null) {
-        logger.info("Applying request for early sender termination for {} -> {}.",
-            QueryIdHelper.getFragmentId(getContext().getHandle()), QueryIdHelper.getFragmentId(handle));
-        root.receivingFragmentFinished(handle);
-      } else {
-        logger.warn("Dropping request for early fragment termination for path {} -> {} as no root exec exists.",
-            QueryIdHelper.getFragmentId(getContext().getHandle()), QueryIdHelper.getFragmentId(handle));
-      }
-
-    }
-
   }
 
+  private class FragmentEventProcessor extends EventProcessor<FragmentEvent> {
+
+    void cancel() {
+      processEvent(new FragmentEvent(EVENT_TYPE.CANCEL, null));
+    }
+
+    void cancelAndFinish() {
+      processEvent(new FragmentEvent(EVENT_TYPE.CANCEL_AND_FINISH, null));
+    }
+
+    void receiverFinished(FragmentHandle handle) {
+      processEvent(new FragmentEvent(EVENT_TYPE.RECEIVER_FINISHED, handle));
+    }
+
+    @Override
+    protected void processEvent(FragmentEvent event) {
+      switch (event.type) {
+        case CANCEL:
+          /*
+           * We set the cancel requested flag but the actual cancellation is managed by the run() loop, if called.
+           */
+          updateState(FragmentState.CANCELLATION_REQUESTED);
+          break;
+
+        case CANCEL_AND_FINISH:
+          updateState(FragmentState.CANCELLATION_REQUESTED);
+          cleanup(FragmentState.FINISHED);
+          break;
+
+        case RECEIVER_FINISHED:
+          assert event.handle != null : "RECEIVER_FINISHED event must have a handle";
+          if (root != null) {
+            logger.info("Applying request for early sender termination for {} -> {}.",
+              QueryIdHelper.getFragmentId(getContext().getHandle()), QueryIdHelper.getFragmentId(event.handle));
+            root.receivingFragmentFinished(event.handle);
+          } else {
+            logger.warn("Dropping request for early fragment termination for path {} -> {} as no root exec exists.",
+              QueryIdHelper.getFragmentId(getContext().getHandle()), QueryIdHelper.getFragmentId(event.handle));
+          }
+          break;
+      }
+    }
+  }
 }
