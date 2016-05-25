@@ -168,15 +168,15 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
 
   @Override
   public void close() throws Exception {
-    // We want to account for the time spent waiting here as Wait time in the operator profile
-    try {
-      stats.startProcessing();
-      stats.startWait();
-      fragmentContext.waitForSendComplete();
-    } finally {
-      stats.stopWait();
-      stats.stopProcessing();
-    }
+//    // We want to account for the time spent waiting here as Wait time in the operator profile
+//    try {
+//      stats.startProcessing();
+//      stats.startWait();
+//      fragmentContext.waitForSendComplete();
+//    } finally {
+//      stats.stopWait();
+//      stats.stopProcessing();
+//    }
 
     // close all operators.
     if (operators != null) {

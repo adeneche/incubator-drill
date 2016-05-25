@@ -19,6 +19,7 @@ package org.apache.drill.exec.ops;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.drill.exec.ops.FragmentContext.SendCompleteListener;
 
 /**
  * Account for whether all messages sent have been completed. Necessary before finishing a task so we don't think
@@ -27,41 +28,44 @@ import java.util.concurrent.atomic.AtomicInteger;
  * TODO: Need to update to use long for number of pending messages.
  */
 class SendingAccountor {
-  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SendingAccountor.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SendingAccountor.class);
 
   private final AtomicInteger batchesSent = new AtomicInteger(0);
   private final Semaphore wait = new Semaphore(0);
+
+  private SendCompleteListener sendCompleteListener;
 
   void increment() {
     batchesSent.incrementAndGet();
   }
 
   void decrement() {
-    wait.release();
+    synchronized (wait) {
+      wait.release();
+    }
+    if (sendCompleteListener != null && isSendComplete()) {
+      sendCompleteListener.sendComplete();
+    }
   }
 
-  public synchronized void waitForSendComplete() {
-      int waitForBatches = batchesSent.get();
-      boolean isInterrupted = false;
-      while(waitForBatches != 0) {
-        try {
-          wait.acquire(waitForBatches);
-          waitForBatches = batchesSent.addAndGet(-1 * waitForBatches);
-        } catch (InterruptedException e) {
-          // We should always wait for send complete. If we don't, we'll leak memory or have a memory miss when we try
-          // to send. This should be safe because: network connections should get disconnected and fail a send if a
-          // node goes down, otherwise, the receiving side connection should always consume from the rpc layer
-          // (blocking is cooperative and will get triggered before this)
-          logger.warn("Interrupted while waiting for send complete. Continuing to wait.", e);
+  /**
+   * Adds a {@link SendCompleteListener} that will be called when we received ack for all outgoing batches
+   * @param sendCompleteListener send complete listener
+   */
+  public void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
+    if (isSendComplete()) {
+      sendCompleteListener.sendComplete();
+    } else {
+      this.sendCompleteListener = sendCompleteListener;
+    }
+  }
 
-          isInterrupted = true;
-        }
-      }
-
-      if (isInterrupted) {
-        // Preserve evidence that the interruption occurred so that code higher up on the call stack can learn of the
-        // interruption and respond to it if it wants to.
-        Thread.currentThread().interrupt();
-      }
+  /**
+   * @return true, if we received ack for all outgoing batches
+   */
+  public boolean isSendComplete() {
+    synchronized (wait) {
+      return wait.availablePermits() >= batchesSent.get();
+    }
   }
 }
