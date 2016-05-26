@@ -377,7 +377,8 @@ public class FragmentExecutor implements Runnable {
                         @Override
                         public void sendComplete() {
                           queue.offer(FIFOTask.of(task, fragmentHandle));
-                          logger.debug("send completed, ready to resume completion of fragment");
+                          logger.debug("send completed, ready to resume completion of fragment {}",
+                            QueryIdHelper.getQueryIdentifier(fragmentHandle));
                         }
                       });
                       logger.debug("waiting for send to complete. backing off...");
