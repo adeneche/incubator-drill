@@ -44,7 +44,7 @@ class SendingAccountor {
       wait.release();
     }
     if (sendCompleteListener != null && isSendComplete()) {
-      sendCompleteListener.sendComplete();
+      sendCompleteListener.sendComplete(false);
     }
   }
 
@@ -54,7 +54,7 @@ class SendingAccountor {
    */
   public void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
     if (isSendComplete()) {
-      sendCompleteListener.sendComplete();
+      sendCompleteListener.sendComplete(true);
     } else {
       this.sendCompleteListener = sendCompleteListener;
     }

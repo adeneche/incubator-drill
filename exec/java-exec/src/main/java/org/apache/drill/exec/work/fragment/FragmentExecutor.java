@@ -305,6 +305,7 @@ public class FragmentExecutor implements Runnable {
               try {
 
                 if (pendingCompletion) {
+                  logger.debug("resuming pending completion");
                   boolean completed = onComplete(); // finish cleaning up
                   Preconditions.checkState(completed,
                     "resuming a pending completion shouldn't block waiting for send complete");
@@ -375,10 +376,10 @@ public class FragmentExecutor implements Runnable {
                       final Runnable task = this;
                       fragmentContext.setSendCompleteListener(new FragmentContext.SendCompleteListener() {
                         @Override
-                        public void sendComplete() {
+                        public void sendComplete(boolean immediate) {
                           queue.offer(FIFOTask.of(task, fragmentHandle));
-                          logger.debug("send completed, ready to resume completion of fragment {}",
-                            QueryIdHelper.getQueryIdentifier(fragmentHandle));
+                          logger.debug("send completed, ready to resume completion of fragment {}, immediate={}",
+                            QueryIdHelper.getQueryIdentifier(fragmentHandle), immediate);
                         }
                       });
                       logger.debug("waiting for send to complete. backing off...");

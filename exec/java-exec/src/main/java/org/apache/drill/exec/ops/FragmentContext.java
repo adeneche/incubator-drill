@@ -497,7 +497,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   }
 
   public interface SendCompleteListener {
-    void sendComplete();
+    void sendComplete(boolean immediate);
   }
 
 
