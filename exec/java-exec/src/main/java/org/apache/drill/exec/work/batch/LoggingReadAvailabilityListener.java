@@ -24,7 +24,7 @@ public class LoggingReadAvailabilityListener implements ReadAvailabilityListener
   private static final Logger logger = LoggerFactory.getLogger(LoggingReadAvailabilityListener.class);
 
   @Override
-  public void onReadAvailable(final IncomingBatchProvider provider) {
-    logger.trace("reading buffer[{}] is now available for read", provider);
+  public void onReadAvailable(final IncomingBatchProvider provider, boolean immediate) {
+    logger.trace("reading buffer[{}] is now available for read, immediate={}", provider, immediate);
   }
 }

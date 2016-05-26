@@ -20,6 +20,6 @@ package org.apache.drill.exec.work.batch;
 public interface ReadAvailabilityListener {
   ReadAvailabilityListener LOGGING_SINK = new LoggingReadAvailabilityListener();
 
-  void onReadAvailable(IncomingBatchProvider provider);
+  void onReadAvailable(IncomingBatchProvider provider, boolean immediate);
 
 }

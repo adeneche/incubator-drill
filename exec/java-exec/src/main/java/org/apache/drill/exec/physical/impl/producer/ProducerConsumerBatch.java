@@ -85,14 +85,14 @@ public class ProducerConsumerBatch extends AbstractRecordBatch<ProducerConsumer>
       if (queue.isEmpty()) {
         batchListener = Preconditions.checkNotNull(listener, "batch listener is required");
       } else {
-        listener.onReadAvailable(this);
+        listener.onReadAvailable(this, true);
       }
     }
   }
 
   protected void fireReadAvailabilityListener() {
     synchronized (queue) {
-      batchListener.onReadAvailable(ProducerConsumerBatch.this);
+      batchListener.onReadAvailable(ProducerConsumerBatch.this, false);
       batchListener = ReadAvailabilityListener.LOGGING_SINK;
     }
   }

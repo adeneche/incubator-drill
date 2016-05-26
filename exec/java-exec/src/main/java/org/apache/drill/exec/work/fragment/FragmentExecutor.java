@@ -339,9 +339,9 @@ public class FragmentExecutor implements Runnable {
                         final Runnable receivingTask = this;
                         blockingProvider.setReadAvailabilityListener(new ReadAvailabilityListener() {
                           @Override
-                          public void onReadAvailable(final IncomingBatchProvider provider) {
+                          public void onReadAvailable(final IncomingBatchProvider provider, boolean immediate) {
                             queue.offer(FIFOTask.of(receivingTask, fragmentHandle));
-                            logger.debug("reading provider is now available");
+                            logger.debug("reading provider is now available, immediate={}", immediate);
                           }
                         });
                         logger.debug("reading provider is empty. backing off...");
