@@ -103,6 +103,7 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
   }
 
   private boolean notYet;
+  private IterOutcome in;
 
   public final IterOutcome next(final RecordBatch b) {
     if(!context.shouldContinue()) {
@@ -133,6 +134,7 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     }
 
     notYet = next == IterOutcome.NOT_YET;
+    in = next;
 
     return next;
   }
@@ -180,6 +182,7 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       logger.warn("operator {} did not handle NOT_YET properly and returning NONE instead",
         popConfig.getOperatorId(), outcome);
     }
+    logger.warn("{} -> {} -> {}", in, this.getClass().getSimpleName(), outcome);
     return outcome;
   }
 
