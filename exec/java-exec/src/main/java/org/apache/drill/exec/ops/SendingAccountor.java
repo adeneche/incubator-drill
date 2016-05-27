@@ -63,7 +63,7 @@ class SendingAccountor {
   /**
    * @return true, if we received ack for all outgoing batches
    */
-  public boolean isSendComplete() {
+  private boolean isSendComplete() {
     synchronized (wait) {
       return wait.availablePermits() >= batchesSent.get();
     }

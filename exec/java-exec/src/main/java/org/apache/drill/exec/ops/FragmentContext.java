@@ -448,11 +448,7 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     return context.getExecutor();
   }
 
-  public boolean isSendComplete() {
-    return sendingAccountor.isSendComplete();
-  }
-
-  public void setSendCompleteListener(SendCompleteListener listener) {
+  public void runWhenSendComplete(SendCompleteListener listener) {
     sendingAccountor.setSendCompleteListener(listener);
   }
 

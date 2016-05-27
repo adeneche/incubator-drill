@@ -83,8 +83,6 @@ public class FragmentExecutor implements Runnable {
   private final DrillbitContext drillbitContext;
   private final ClusterCoordinator clusterCoordinator;
 
-  private boolean pendingCompletion;
-
   /**
    * Create a FragmentExecutor where we need to parse and materialize the root operator.
    *
@@ -304,15 +302,6 @@ public class FragmentExecutor implements Runnable {
 
               try {
 
-                if (pendingCompletion) {
-                  logger.debug("resuming pending completion");
-                  boolean completed = onComplete(); // finish cleaning up
-                  Preconditions.checkState(completed,
-                    "resuming a pending completion shouldn't block waiting for send complete");
-                  pendingCompletion = false;
-                  return;
-                }
-
                 do {
                   isCompleted = false;
                   iteration++;
@@ -350,12 +339,12 @@ public class FragmentExecutor implements Runnable {
                         isCompleted = !shouldContinue();
                         final boolean lastIteration = iteration == maxIterations;
                         final boolean shouldDefer = !isCompleted && lastIteration;
+                        logger.warn("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
+                          isCompleted, shouldDefer);
                         if (shouldDefer) {
                           queue.offer(this);
                           return;
                         }
-                        logger.warn("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
-                          isCompleted, shouldDefer);
                         break;
                       case COMPLETED:
                         if (fragmentContext.hasBlockingIncomingBatchProvider()) {
@@ -370,19 +359,8 @@ public class FragmentExecutor implements Runnable {
                     fail(ex);
                     isCompleted = true;
                   } finally {
-                    if (isCompleted && !onComplete()) {
-                      pendingCompletion = true;
-
-                      final Runnable task = this;
-                      fragmentContext.setSendCompleteListener(new FragmentContext.SendCompleteListener() {
-                        @Override
-                        public void sendComplete(boolean immediate) {
-                          queue.offer(FIFOTask.of(task, fragmentHandle));
-                          logger.debug("send completed, ready to resume completion of fragment {}, immediate={}",
-                            QueryIdHelper.getQueryIdentifier(fragmentHandle), immediate);
-                        }
-                      });
-                      logger.debug("waiting for send to complete. backing off...");
+                    if (isCompleted) {
+                      tryComplete();
                     }
                   }
                 } while (!isCompleted && iteration < maxIterations);
@@ -410,27 +388,22 @@ public class FragmentExecutor implements Runnable {
       fail(e);
     } finally {
       if (!success) {
-        boolean completed = onComplete();
-        if (!completed) {
-          // TODO change this to an assertion, but for now this is the easiest way to not miss this in a cluster
-          fail(new IllegalStateException("onComplete() should not wait for send complete if we failed to start the fragment"));
-        }
+        tryComplete();
       }
     }
   }
 
-  private boolean onComplete() {
+  private void tryComplete() {
     // We need to sure we countDown at least once. We'll do it here to guarantee that.
     acceptExternalEvents.countDown();
 
-    if (!fragmentContext.isSendComplete()) {
-      return false;
-    }
-
-    // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
-    cleanup(FragmentState.FINISHED);
-
-    return true;
+    fragmentContext.runWhenSendComplete(new FragmentContext.SendCompleteListener() {
+      @Override
+      public void sendComplete(boolean immediate) {
+        // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
+        cleanup(FragmentState.FINISHED);
+      }
+    });
   }
 
   /**
