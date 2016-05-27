@@ -401,6 +401,7 @@ public class FragmentExecutor implements Runnable {
       @Override
       public void sendComplete(boolean immediate) {
         // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
+        logger.debug("cleaning up. Immediate={}", immediate);
         cleanup(FragmentState.FINISHED);
       }
     });
