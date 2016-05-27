@@ -26,6 +26,13 @@ import org.apache.drill.exec.ops.FragmentContext.SendCompleteListener;
  * buffers are hanging when they will be released.
  *
  * TODO: Need to update to use long for number of pending messages.
+ *
+ * Accepts a {@link SendCompleteListener} that will be called when all acks have been received.<br>
+ * <pre>Few assumptions are made about this listener:
+ * 1. the listener will only be set when the fragment is closing, so no more fragments will be sent and thus
+ *    {@link #increment()} will not be called again
+ * 2. the listener can be safely called more than once
+ * </pre>
  */
 class SendingAccountor {
 //  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SendingAccountor.class);
@@ -33,18 +40,16 @@ class SendingAccountor {
   private final AtomicInteger batchesSent = new AtomicInteger(0);
   private final Semaphore wait = new Semaphore(0);
 
-  private SendCompleteListener sendCompleteListener;
+  private volatile SendCompleteListener sendCompleteListener;
 
   void increment() {
     batchesSent.incrementAndGet();
   }
 
   void decrement() {
-    synchronized (wait) {
-      wait.release();
-    }
-    if (sendCompleteListener != null && isSendComplete()) {
-      sendCompleteListener.sendComplete(false);
+    wait.release();
+    if (isSendComplete() && sendCompleteListener != null) {
+        sendCompleteListener.sendComplete(false);
     }
   }
 
@@ -53,10 +58,9 @@ class SendingAccountor {
    * @param sendCompleteListener send complete listener
    */
   public void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
+    this.sendCompleteListener = sendCompleteListener;
     if (isSendComplete()) {
       sendCompleteListener.sendComplete(true);
-    } else {
-      this.sendCompleteListener = sendCompleteListener;
     }
   }
 
@@ -64,8 +68,6 @@ class SendingAccountor {
    * @return true, if we received ack for all outgoing batches
    */
   private boolean isSendComplete() {
-    synchronized (wait) {
-      return wait.availablePermits() >= batchesSent.get();
-    }
+    return wait.availablePermits() == batchesSent.get();
   }
 }

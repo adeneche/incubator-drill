@@ -83,6 +83,7 @@ public class FragmentExecutor implements Runnable {
   private final DrillbitContext drillbitContext;
   private final ClusterCoordinator clusterCoordinator;
 
+  private final AtomicBoolean cleaned = new AtomicBoolean();
   /**
    * Create a FragmentExecutor where we need to parse and materialize the root operator.
    *
@@ -400,6 +401,10 @@ public class FragmentExecutor implements Runnable {
     fragmentContext.runWhenSendComplete(new FragmentContext.SendCompleteListener() {
       @Override
       public void sendComplete(boolean immediate) {
+        if (!cleaned.compareAndSet(false, true)) {
+          return; // make sure this is only run once
+        }
+
         // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
         logger.debug("cleaning up. Immediate={}", immediate);
         cleanup(FragmentState.FINISHED);
