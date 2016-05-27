@@ -182,7 +182,7 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       logger.warn("operator {} did not handle NOT_YET properly and returning NONE instead",
         popConfig.getOperatorId(), outcome);
     }
-    logger.warn("{} -> {} -> {}", in, this.getClass().getSimpleName(), outcome);
+    logger.warn("{} -> {}-{} -> {}", in, this.getClass().getSimpleName(), popConfig.getOperatorId(), outcome);
     return outcome;
   }
 

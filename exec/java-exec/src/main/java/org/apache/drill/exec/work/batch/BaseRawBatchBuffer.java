@@ -174,7 +174,7 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
       // if we didn't get a batch, block on waiting for queue.
       if (b == null && (!isTerminated() || !bufferQueue.isEmpty())) {
 //        b = bufferQueue.take();
-        logger.debug("blocking and returning RawFragmentBatch.NONE");
+        logger.warn("blocking and returning RawFragmentBatch.NONE");
         context.setBlockingIncomingBatchProvider(this);
         return RawFragmentBatch.NONE;
       }
