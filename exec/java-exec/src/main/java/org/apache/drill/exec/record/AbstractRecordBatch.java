@@ -102,6 +102,8 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     return popConfig;
   }
 
+  private boolean notYet;
+
   public final IterOutcome next(final RecordBatch b) {
     if(!context.shouldContinue()) {
       return IterOutcome.STOP;
@@ -130,6 +132,8 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       break;
     }
 
+    notYet = next == IterOutcome.NOT_YET;
+
     return next;
   }
 
@@ -140,34 +144,42 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
       switch (state) {
         case BUILD_SCHEMA: {
           if (!buildSchema()) {
-            return IterOutcome.NOT_YET;
+            return returning(IterOutcome.NOT_YET);
           }
           switch (state) {
             case DONE:
-              return IterOutcome.NONE;
+              return returning(IterOutcome.NONE);
             case OUT_OF_MEMORY:
               // because we don't support schema changes, it is safe to fail the query right away
               context.fail(UserException.memoryError()
                 .build(logger));
               // FALL-THROUGH
             case STOP:
-              return IterOutcome.STOP;
+              return returning(IterOutcome.STOP);
             default:
               state = BatchState.FIRST;
-              return IterOutcome.OK_NEW_SCHEMA;
+              return returning(IterOutcome.OK_NEW_SCHEMA);
           }
         }
         case DONE: {
-          return IterOutcome.NONE;
+          return returning(IterOutcome.NONE);
         }
         default:
-          return innerNext();
+          return returning(innerNext());
       }
     } catch (final SchemaChangeException e) {
       throw new DrillRuntimeException(e);
     } finally {
       stats.stopProcessing();
     }
+  }
+
+  private IterOutcome returning(IterOutcome outcome) {
+    if (notYet && outcome != IterOutcome.NOT_YET) {
+      logger.warn("operator {} did not handle NOT_YET properly and returning {} instead",
+        popConfig.getOperatorId(), outcome);
+    }
+    return outcome;
   }
 
   public abstract IterOutcome innerNext();
