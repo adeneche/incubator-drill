@@ -137,35 +137,34 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     return next;
   }
 
-  @Override
-  public IterOutcome next() {
+  private IterOutcome doNext() {
     try {
       stats.startProcessing();
       switch (state) {
         case BUILD_SCHEMA: {
           if (!buildSchema()) {
-            return returning(IterOutcome.NOT_YET);
+            return IterOutcome.NOT_YET;
           }
           switch (state) {
             case DONE:
-              return returning(IterOutcome.NONE);
+              return IterOutcome.NONE;
             case OUT_OF_MEMORY:
               // because we don't support schema changes, it is safe to fail the query right away
               context.fail(UserException.memoryError()
                 .build(logger));
               // FALL-THROUGH
             case STOP:
-              return returning(IterOutcome.STOP);
+              return IterOutcome.STOP;
             default:
               state = BatchState.FIRST;
-              return returning(IterOutcome.OK_NEW_SCHEMA);
+              return IterOutcome.OK_NEW_SCHEMA;
           }
         }
         case DONE: {
-          return returning(IterOutcome.NONE);
+          return IterOutcome.NONE;
         }
         default:
-          return returning(innerNext());
+          return innerNext();
       }
     } catch (final SchemaChangeException e) {
       throw new DrillRuntimeException(e);
@@ -174,9 +173,11 @@ public abstract class AbstractRecordBatch<T extends PhysicalOperator> implements
     }
   }
 
-  private IterOutcome returning(IterOutcome outcome) {
-    if (notYet && outcome != IterOutcome.NOT_YET) {
-      logger.warn("operator {} did not handle NOT_YET properly and returning {} instead",
+  @Override
+  public IterOutcome next() {
+    IterOutcome outcome = doNext();
+    if (notYet && outcome == IterOutcome.NONE) {
+      logger.warn("operator {} did not handle NOT_YET properly and returning NONE instead",
         popConfig.getOperatorId(), outcome);
     }
     return outcome;

@@ -348,7 +348,8 @@ public class FragmentExecutor implements Runnable {
                         }
                         break;
                       case COMPLETED:
-                        if (fragmentContext.hasBlockingIncomingBatchProvider()) {
+                        if (fragmentState.get() != FragmentState.FAILED &&
+                            fragmentContext.hasBlockingIncomingBatchProvider()) {
                           throw UserException.resourceError()
                             .message("received COMPLETED yet there a blocking incoming batch provider")
                             .build(logger);
