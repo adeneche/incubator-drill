@@ -21,4 +21,5 @@ public interface IncomingBatchProvider {
 
   void setReadAvailabilityListener(ReadAvailabilityListener listener);
 
+  boolean isFinished();
 }

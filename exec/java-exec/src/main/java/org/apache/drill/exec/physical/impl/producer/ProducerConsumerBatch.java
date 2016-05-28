@@ -265,4 +265,8 @@ public class ProducerConsumerBatch extends AbstractRecordBatch<ProducerConsumer>
     }
   }
 
+  @Override
+  public boolean isFinished() {
+    return true; // let's ignore ProducerConsumer when looking for NOT_YET ill handling
+  }
 }

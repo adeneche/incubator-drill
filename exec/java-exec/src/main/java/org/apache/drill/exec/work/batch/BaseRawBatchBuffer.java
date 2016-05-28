@@ -262,4 +262,9 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
     readListener.onReadAvailable(this, false);
     readListener = ReadAvailabilityListener.LOGGING_SINK;
   }
+
+  @Override
+  public boolean isFinished() {
+    return isTerminated();
+  }
 }
