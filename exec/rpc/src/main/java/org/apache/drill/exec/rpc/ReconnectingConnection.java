@@ -115,7 +115,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
           CONNECTION_TYPE connection = this.get(remainingWaitTimeMills, TimeUnit.MILLISECONDS);
 
           if (connection == null) {
-            //          logger.debug("Connection failed.");
+            logger.warn("Connection failed to {}:{}. This batch will never be sent", host, port);
           } else {
             //          logger.debug("Connection received. {}", connection);
             cmd.connectionSucceeded(connection);
