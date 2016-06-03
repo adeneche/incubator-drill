@@ -53,6 +53,8 @@ public class BootStrapContext implements AutoCloseable {
   private final ExecutorService taskExecutor;
   private final BlockingQueue<Runnable> tasks;
 
+  private final BufferAllocator nettyAllocator;
+
   static class Task implements Runnable, Comparable {
     private final Runnable delegate;
 
@@ -112,7 +114,13 @@ public class BootStrapContext implements AutoCloseable {
         }
         super.afterExecute(r, t);
       }
-    };  }
+    };
+
+    // create a dummy child allocator with initial reservation
+    // this should prevent Drill from using all direct memory and cause OOM in netty
+    long nettyReservation = config.getLong("drill.exec.memory.netty");
+    nettyAllocator = allocator.newChildAllocator("NETTY", nettyReservation, nettyReservation);
+  }
 
   public BlockingQueue<Runnable> getTaskQueue() {
     return tasks;
@@ -184,6 +192,7 @@ public class BootStrapContext implements AutoCloseable {
     shutDown(executor);
     shutDown(taskExecutor);
 
+    DrillAutoCloseables.closeNoChecked(nettyAllocator);
     DrillAutoCloseables.closeNoChecked(allocator);
   }
 }
