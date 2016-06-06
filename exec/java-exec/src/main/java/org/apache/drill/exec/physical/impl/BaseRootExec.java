@@ -201,14 +201,14 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
   @Override
   public synchronized void setSendAvailabilityListener(final SendAvailabilityListener listener) {
     if (canSend()) {
-      listener.onSendAvailable(this);
+      listener.onSendAvailable(this, true);
     } else {
       sendListener = Preconditions.checkNotNull(listener, "listener cannot be null.");
     }
   }
 
   protected synchronized void fireSendAvailabilityListener() {
-    sendListener.onSendAvailable(this);
+    sendListener.onSendAvailable(this, false);
     sendListener = SendAvailabilityListener.LOGGING_SINK;
   }
 

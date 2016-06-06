@@ -252,13 +252,13 @@ public abstract class BaseRawBatchBuffer<T> implements RawBatchBuffer {
       if (bufferQueue.isEmpty()) {
         readListener = Preconditions.checkNotNull(listener, "read listener is required");
       } else {
-        listener.onReadAvailable(this);
+        listener.onReadAvailable(this, true);
       }
     }
   }
 
   protected synchronized void fireReadAvailabilityListener() {
-    readListener.onReadAvailable(this);
+    readListener.onReadAvailable(this, false);
     readListener = ReadAvailabilityListener.LOGGING_SINK;
   }
 }

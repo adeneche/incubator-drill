@@ -315,9 +315,21 @@ public class FragmentExecutor implements Runnable {
                         final Runnable sendingTask = this;
                         root.setSendAvailabilityListener(new SendAvailabilityListener() {
                           @Override
-                          public void onSendAvailable(final RootExec exec) {
+                          public void onSendAvailable(final RootExec exec, boolean immediate) {
+                            Stopwatch stopwatch = null;
+                            if (!immediate) {
+                              stopwatch = Stopwatch.createStarted();
+                            }
+
                             queue.offer(FIFOTask.of(sendingTask, fragmentHandle));
                             logger.debug("sending provider is now available");
+
+                            if (!immediate) {
+                              long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                              if (elapsed > 500) {
+                                logger.warn("HAKIM: onSendAvailable took {} ms", elapsed);
+                              }
+                            }
                           }
                         });
                         logger.debug("sending provider is full. backing off...");
@@ -330,9 +342,21 @@ public class FragmentExecutor implements Runnable {
                         final Runnable receivingTask = this;
                         blockingProvider.setReadAvailabilityListener(new ReadAvailabilityListener() {
                           @Override
-                          public void onReadAvailable(final IncomingBatchProvider provider) {
+                          public void onReadAvailable(final IncomingBatchProvider provider, boolean immediate) {
+                            Stopwatch stopwatch = null;
+                            if (!immediate) {
+                              stopwatch = Stopwatch.createStarted();
+                            }
+
                             queue.offer(FIFOTask.of(receivingTask, fragmentHandle));
                             logger.debug("reading provider is now available");
+
+                            if (!immediate) {
+                              long elapsed = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                              if (elapsed > 500) {
+                                logger.warn("HAKIM: onReadAvailable took {} ms", elapsed);
+                              }
+                            }
                           }
                         });
                         logger.debug("reading provider is empty. backing off...");

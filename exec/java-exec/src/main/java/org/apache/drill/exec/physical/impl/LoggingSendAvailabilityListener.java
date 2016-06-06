@@ -24,7 +24,7 @@ public class LoggingSendAvailabilityListener implements SendAvailabilityListener
   private static final Logger logger = LoggerFactory.getLogger(LoggingSendAvailabilityListener.class);
 
   @Override
-  public void onSendAvailable(final RootExec exec) {
+  public void onSendAvailable(final RootExec exec, boolean immediate) {
     logger.trace("sending buffer is now available for {}", exec.getClass().getSimpleName());
   }
 }

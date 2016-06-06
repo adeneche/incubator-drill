@@ -20,6 +20,6 @@ package org.apache.drill.exec.physical.impl;
 public interface SendAvailabilityListener {
   SendAvailabilityListener LOGGING_SINK = new LoggingSendAvailabilityListener();
 
-  void onSendAvailable(RootExec exec);
+  void onSendAvailable(RootExec exec, boolean immediate);
 
 }
