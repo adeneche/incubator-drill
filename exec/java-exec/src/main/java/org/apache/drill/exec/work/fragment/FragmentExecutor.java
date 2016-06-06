@@ -22,11 +22,13 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import org.apache.drill.common.CatastrophicFailure;
 import org.apache.drill.common.DeferredException;
 import org.apache.drill.common.SerializedExecutor;
@@ -394,10 +396,22 @@ public class FragmentExecutor implements Runnable {
 
     fragmentContext.runWhenSendComplete(new FragmentContext.SendCompleteListener() {
       @Override
-      public void sendComplete() {
+      public void sendComplete(boolean immediate) {
         if (cleaned.compareAndSet(false, true)) { // make sure this is only run once
+          Stopwatch watch = null;
+          if (!immediate) {
+            watch = Stopwatch.createStarted();
+          }
+
           // here we could be in FAILED, RUNNING, or CANCELLATION_REQUESTED
           cleanup(FragmentState.FINISHED);
+
+          if (!immediate) {
+            long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
+            if (elapsed > 500) {
+              logger.warn("HAKIM: fragment cleanup took {} ms", elapsed);
+            }
+          }
         }
       }
     });

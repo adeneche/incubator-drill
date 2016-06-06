@@ -49,7 +49,7 @@ class SendingAccountor {
   void decrement() {
     wait.release();
     if (isSendComplete() && sendCompleteListener != null) {
-        sendCompleteListener.sendComplete();
+        sendCompleteListener.sendComplete(false);
     }
   }
 
@@ -60,7 +60,7 @@ class SendingAccountor {
   public void setSendCompleteListener(SendCompleteListener sendCompleteListener) {
     this.sendCompleteListener = sendCompleteListener;
     if (isSendComplete()) {
-      sendCompleteListener.sendComplete();
+      sendCompleteListener.sendComplete(true);
     }
   }
 
