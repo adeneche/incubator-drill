@@ -30,6 +30,7 @@ import org.apache.drill.exec.ops.OperatorStats;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.proto.ExecProtos.FragmentHandle;
 import org.apache.drill.exec.proto.GeneralRPCProtos;
+import org.apache.drill.exec.proto.helper.QueryIdHelper;
 import org.apache.drill.exec.record.CloseableRecordBatch;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.record.RecordBatch.IterOutcome;
@@ -49,24 +50,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
   private SendAvailabilityListener sendListener = SendAvailabilityListener.LOGGING_SINK;
   private S pendingState;
 
-  private final RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityHandler = new BaseRpcOutcomeListener<GeneralRPCProtos.Ack>() {
-    @Override
-    public void failed(final RpcException ex) {
-      fireIfOutgoingBuffersAvailable();
-    }
-
-    @Override
-    public void success(final GeneralRPCProtos.Ack value, final ByteBuf buffer) {
-      fireIfOutgoingBuffersAvailable();
-    }
-
-    protected void fireIfOutgoingBuffersAvailable() {
-      final boolean canSend = canSend();
-      if (canSend) {
-        fireSendAvailabilityListener();
-      }
-    }
-  };
+  private final SendAvailabilityHandler sendAvailabilityHandler = new SendAvailabilityHandler();
 
   public static class IterationState {
     public final IterOutcome outcome;
@@ -81,12 +65,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
   }
 
   public BaseRootExec(final FragmentContext fragmentContext, final PhysicalOperator config) throws OutOfMemoryException {
-    this.oContext = fragmentContext.newOperatorContext(config, stats);
-    stats = new OperatorStats(new OpProfileDef(config.getOperatorId(),
-        config.getOperatorType(), OperatorContext.getChildCount(config)),
-        oContext.getAllocator());
-    fragmentContext.getStats().addOperatorStats(this.stats);
-    this.fragmentContext = fragmentContext;
+    this(fragmentContext, fragmentContext.newOperatorContext(config), config);
   }
 
   public BaseRootExec(final FragmentContext fragmentContext, final OperatorContext oContext,
@@ -97,6 +76,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
       oContext.getAllocator());
     fragmentContext.getStats().addOperatorStats(this.stats);
     this.fragmentContext = fragmentContext;
+    fragmentContext.setWritableListener(sendAvailabilityHandler);
   }
 
   void setOperators(List<CloseableRecordBatch> operators) {
@@ -207,7 +187,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
     }
   }
 
-  protected synchronized void fireSendAvailabilityListener() {
+  private synchronized void fireSendAvailabilityListener() {
     sendListener.onSendAvailable(this);
     sendListener = SendAvailabilityListener.LOGGING_SINK;
   }
@@ -232,4 +212,27 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
     return sendAvailabilityHandler;
   }
 
+  private class SendAvailabilityHandler extends BaseRpcOutcomeListener<GeneralRPCProtos.Ack> implements WritableListener {
+    @Override
+    public void failed(final RpcException ex) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    @Override
+    public void success(final GeneralRPCProtos.Ack value, final ByteBuf buffer) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    @Override
+    public void channelWritable() {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    private void fireIfOutgoingBuffersAvailable() {
+      final boolean canSend = canSend();
+      if (canSend) {
+         fireSendAvailabilityListener();
+      }
+    }
+  }
 }
