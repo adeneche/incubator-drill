@@ -58,7 +58,7 @@ import org.apache.drill.exec.vector.ValueVector;
 import com.google.common.collect.Lists;
 
 public abstract class PartitionerTemplate implements Partitioner {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PartitionerTemplate.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(PartitionerTemplate.class);
 
   // Always keep the recordCount as (2^x) - 1 to better utilize the memory allocation in ValueVectors
   private static final int DEFAULT_RECORD_BATCH_SIZE = (1 << 10) - 1;
@@ -72,6 +72,8 @@ public abstract class PartitionerTemplate implements Partitioner {
   private List<OutgoingRecordBatch> outgoingBatches = Lists.newArrayList();
 
   private int outgoingRecordBatchSize = DEFAULT_RECORD_BATCH_SIZE;
+
+  private WritableBatch writableBatch;
 
   public PartitionerTemplate() { }
 
@@ -327,10 +329,9 @@ public abstract class PartitionerTemplate implements Partitioner {
     public boolean send(final FragmentWritableBatch batch) {
       stats.startWait();
       try {
-        if (!tunnel.isSendingBufferAvailable()) {
+        if (!tunnel.isSendingBufferAvailable() || !tunnel.sendRecordBatch(batch)) {
           return false;
         }
-        tunnel.sendRecordBatch(batch);
         updateStats(batch);
       } finally {
         stats.stopWait();
@@ -393,14 +394,15 @@ public abstract class PartitionerTemplate implements Partitioner {
       clear();
 
       if (!send(batch)) {
-        logger.error("this should never happen.");
         return false;
       }
+
+      writableBatch = null; // we are done sending this batch
 
       return true;
     }
 
-    public void updateStats(FragmentWritableBatch writableBatch) {
+    void updateStats(FragmentWritableBatch writableBatch) {
       stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
       stats.addLongStat(Metric.BATCHES_SENT, 1);
       stats.addLongStat(Metric.RECORDS_SENT, writableBatch.getHeader().getDef().getRecordCount());
@@ -521,8 +523,11 @@ public abstract class PartitionerTemplate implements Partitioner {
     }
 
     public WritableBatch getWritableBatch() {
-      setContainerSize(recordCount);
-      return WritableBatch.getBatchNoHVWrap(recordCount, this, false);
+      if (writableBatch == null) {
+        setContainerSize(recordCount);
+        writableBatch = WritableBatch.getBatchNoHVWrap(recordCount, this, false);
+      }
+      return writableBatch;
     }
 
     @Override

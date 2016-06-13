@@ -339,6 +339,7 @@ public class FragmentExecutor implements Runnable {
                             logger.trace("sending provider is now available");
                           }
                         });
+                        fragmentContext.setWritableListener(root.getWritableListener());
                         logger.trace("sending provider is full. backing off...");
                         return;
                       case NOT_YET:

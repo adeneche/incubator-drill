@@ -17,11 +17,13 @@
  */
 package org.apache.drill.exec.ops;
 
+import com.google.common.collect.Sets;
 import io.netty.buffer.DrillBuf;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import org.apache.calcite.schema.SchemaPlus;
@@ -37,6 +39,7 @@ import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
 import org.apache.drill.exec.memory.BufferAllocator;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
+import org.apache.drill.exec.physical.impl.WritableListener;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.proto.BitControl.PlanFragment;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
@@ -46,6 +49,8 @@ import org.apache.drill.exec.proto.helper.QueryIdHelper;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.rpc.control.ControlTunnel;
+import org.apache.drill.exec.rpc.data.DataConnectionManager;
+import org.apache.drill.exec.rpc.data.DataTunnel;
 import org.apache.drill.exec.rpc.user.UserServer.UserClientConnection;
 import org.apache.drill.exec.server.DrillbitContext;
 import org.apache.drill.exec.server.options.FragmentOptionManager;
@@ -87,7 +92,27 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   private final BufferManager bufferManager;
   private ExecutorState executorState;
   private final ExecutionControls executionControls;
+  private final Set<DataConnectionManager> dataConnectionManagers = Sets.newHashSet();
 
+  private final DataConnectionManager.ChannelWritabilityListener cwl = new DataConnectionManager.ChannelWritabilityListener() {
+    @Override
+    public void channelWritabilityChanged(boolean writable) {
+      channelIsWritable = writable;
+      if (writable && writableListener.channelWritable()) {
+        writableListener = WritableListener.SINK;
+      }
+    }
+  };
+
+  private volatile WritableListener writableListener = WritableListener.SINK;
+
+  private volatile boolean channelIsWritable = true;
+  public void setWritableListener(WritableListener writableListener) {
+    this.writableListener = writableListener;
+    if (channelIsWritable && writableListener.channelWritable()) {
+      this.writableListener = WritableListener.SINK;
+    }
+  }
 
   private final SendingAccountor sendingAccountor = new SendingAccountor();
   private final Consumer<RpcException> exceptionConsumer = new Consumer<RpcException>() {
@@ -336,9 +361,13 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   public FragmentAccountingDataTunnel getDataTunnel(final MinorFragmentEndpoint minorEndpoint) {
     FragmentAccountingDataTunnel tunnel = fragmentTunnels.get(minorEndpoint);
     if (tunnel == null) {
-      tunnel = new FragmentAccountingDataTunnelImpl(context.getDataConnectionsPool().getTunnel(minorEndpoint.getEndpoint()),
-          minorEndpoint, sendingAccountor, statusHandler);
+      DataTunnel dataTunnel = context.getDataConnectionsPool().getTunnel(minorEndpoint.getEndpoint());
+      tunnel = new FragmentAccountingDataTunnelImpl(dataTunnel, minorEndpoint, sendingAccountor, statusHandler);
       fragmentTunnels.put(minorEndpoint, tunnel);
+
+      if (dataConnectionManagers.add(dataTunnel.getManager())) {
+        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
+      }
     }
     return tunnel;
   }
@@ -346,9 +375,13 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   public DrillbitAccountingDataTunnel getDataTunnel(final DrillbitEndpoint drillbitEndpoint) {
     DrillbitAccountingDataTunnel tunnel = drillbitTunnels.get(drillbitEndpoint);
     if (tunnel == null) {
-      tunnel = new DrillbitAccountingDataTunnel(context.getDataConnectionsPool().getTunnel(drillbitEndpoint),
-          sendingAccountor, statusHandler);
+      DataTunnel dataTunnel = context.getDataConnectionsPool().getTunnel(drillbitEndpoint);
+      tunnel = new DrillbitAccountingDataTunnel(dataTunnel, sendingAccountor, statusHandler);
       drillbitTunnels.put(drillbitEndpoint, tunnel);
+
+      if (dataConnectionManagers.add(dataTunnel.getManager())) {
+        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
+      }
     }
     return tunnel;
   }
@@ -420,6 +453,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
       suppressingClose(opContext);
     }
 
+    for (DataConnectionManager manager : dataConnectionManagers) {
+      manager.removeChannelWritabilityListener(this);
+    }
+
     suppressingClose(bufferManager);
     suppressingClose(buffers);
     suppressingClose(allocator);
@@ -465,6 +502,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   public boolean isSendComplete() {
     return sendingAccountor.isSendComplete();
+  }
+
+  public boolean isChannelWritable() {
+    return channelIsWritable;
   }
 
   public interface ExecutorState {

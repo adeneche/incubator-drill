@@ -92,6 +92,10 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
 
   @Override
   protected boolean canSend() {
+    if (!fragmentContext.isChannelWritable()) {
+      return false;
+    }
+
     for (final AccountingDataTunnel tunnel:tunnels) {
       if (!tunnel.isSendingBufferAvailable()) {
         return false;
@@ -134,7 +138,10 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
               receivingMinorFragments[i]);
           stats.startWait();
           try {
-            tunnels.get(i).sendRecordBatch(b2);
+            if (!tunnels.get(i).sendRecordBatch(b2)) {
+              savePendingState(new BroadcastSenderIterationState(out, i, null));
+              return IterationResult.SENDING_BUFFER_FULL;
+            }
           } finally {
             stats.stopWait();
           }
@@ -167,7 +174,10 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
               writableBatch);
           stats.startWait();
           try {
-            tunnels.get(i).sendRecordBatch(batch);
+            if (!tunnels.get(i).sendRecordBatch(batch)) {
+              savePendingState(new BroadcastSenderIterationState(out, i, writableBatch));
+              return IterationResult.SENDING_BUFFER_FULL;
+            }
             updateStats(batch);
           } finally {
             stats.stopWait();
@@ -179,7 +189,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
     }
   }
 
-  public void updateStats(FragmentWritableBatch writableBatch) {
+  private void updateStats(FragmentWritableBatch writableBatch) {
     stats.setLongStat(Metric.N_RECEIVERS, tunnels.size());
     stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
   }

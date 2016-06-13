@@ -17,18 +17,25 @@
  */
 package org.apache.drill.exec.rpc.data;
 
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.proto.BitData.BitClientHandshake;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.proto.UserBitShared.RpcChannel;
 import org.apache.drill.exec.rpc.ReconnectingConnection;
 import org.apache.drill.exec.server.BootStrapContext;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class DataConnectionManager extends ReconnectingConnection<DataClientConnection, BitClientHandshake>{
 
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataConnectionManager.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataConnectionManager.class);
 
   private final DrillbitEndpoint endpoint;
   private final BootStrapContext context;
+  private final Map<FragmentContext, ChannelWritabilityListener> cwls = new ConcurrentHashMap<>();
 
   private final static BitClientHandshake HANDSHAKE = BitClientHandshake //
       .newBuilder() //
@@ -42,9 +49,41 @@ public class DataConnectionManager extends ReconnectingConnection<DataClientConn
     this.context = context;
   }
 
+  public void addChannelWritabilityListener(FragmentContext context, ChannelWritabilityListener cwl) {
+    cwls.put(context, cwl);
+  }
+
+  public void removeChannelWritabilityListener(FragmentContext context) {
+    cwls.remove(context);
+  }
+
   @Override
   protected DataClient getNewClient() {
     return new DataClient(endpoint, context, new CloseHandlerCreator());
   }
 
+  @Override
+  protected void connectionUpdated(DataClientConnection connection) {
+    connection.getChannel().pipeline().addLast(new ChannelInboundHandlerAdapter() {
+      @Override
+      public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+        boolean isWritable = ctx.channel().isWritable();
+        fireWritabilityListener(isWritable);
+
+        ctx.fireChannelWritabilityChanged();
+      }
+    });
+
+    fireWritabilityListener(true); // we have a new connection, make sure we wake up all "blocked" tasks
+  }
+
+  private void fireWritabilityListener(boolean isWritable) {
+    for (ChannelWritabilityListener cwl : cwls.values()) {
+      cwl.channelWritabilityChanged(isWritable);
+    }
+  }
+
+  public interface ChannelWritabilityListener {
+    void channelWritabilityChanged(boolean writable);
+  }
 }

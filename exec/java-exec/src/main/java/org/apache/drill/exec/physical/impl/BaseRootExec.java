@@ -49,24 +49,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
   private SendAvailabilityListener sendListener = SendAvailabilityListener.LOGGING_SINK;
   private S pendingState;
 
-  private final RpcOutcomeListener<GeneralRPCProtos.Ack> sendAvailabilityHandler = new BaseRpcOutcomeListener<GeneralRPCProtos.Ack>() {
-    @Override
-    public void failed(final RpcException ex) {
-      fireIfOutgoingBuffersAvailable();
-    }
-
-    @Override
-    public void success(final GeneralRPCProtos.Ack value, final ByteBuf buffer) {
-      fireIfOutgoingBuffersAvailable();
-    }
-
-    protected void fireIfOutgoingBuffersAvailable() {
-      final boolean canSend = canSend();
-      if (canSend) {
-        fireSendAvailabilityListener();
-      }
-    }
-  };
+  private final SendAvailabilityHandler sendAvailabilityHandler = new SendAvailabilityHandler();
 
   public static class IterationState {
     public final IterOutcome outcome;
@@ -207,7 +190,7 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
     }
   }
 
-  protected synchronized void fireSendAvailabilityListener() {
+  private synchronized void fireSendAvailabilityListener() {
     sendListener.onSendAvailable(this);
     sendListener = SendAvailabilityListener.LOGGING_SINK;
   }
@@ -232,4 +215,33 @@ public abstract class BaseRootExec<S extends BaseRootExec.IterationState> implem
     return sendAvailabilityHandler;
   }
 
+  @Override
+  public WritableListener getWritableListener() {
+    return sendAvailabilityHandler;
+  }
+
+  private class SendAvailabilityHandler extends BaseRpcOutcomeListener<GeneralRPCProtos.Ack> implements WritableListener {
+    @Override
+    public void failed(final RpcException ex) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    @Override
+    public void success(final GeneralRPCProtos.Ack value, final ByteBuf buffer) {
+      fireIfOutgoingBuffersAvailable();
+    }
+
+    @Override
+    public boolean channelWritable() {
+      return fireIfOutgoingBuffersAvailable();
+    }
+
+    private boolean fireIfOutgoingBuffersAvailable() {
+      final boolean canSend = canSend();
+      if (canSend) {
+        fireSendAvailabilityListener();
+      }
+      return canSend;
+    }
+  }
 }

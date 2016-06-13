@@ -53,13 +53,13 @@ public class FragmentDelegatingAccountingDataTunnel implements FragmentAccountin
   }
 
   @Override
-  public void sendRecordBatch(final FragmentWritableBatch batch) {
-    sendRecordBatch(getStatusHandler(), batch);
+  public boolean sendRecordBatch(final FragmentWritableBatch batch) {
+    return sendRecordBatch(getStatusHandler(), batch);
   }
 
   @Override
-  public void sendRecordBatch(final RpcOutcomeListener<GeneralRPCProtos.Ack> listener, final FragmentWritableBatch batch) {
-    delegate.sendRecordBatch(listener, batch);
+  public boolean sendRecordBatch(final RpcOutcomeListener<GeneralRPCProtos.Ack> listener, final FragmentWritableBatch batch) {
+    return delegate.sendRecordBatch(listener, batch);
   }
 
   @Override

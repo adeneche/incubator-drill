@@ -133,7 +133,7 @@ public class PartitionSenderRootExec extends BaseRootExec<PartitionSenderIterati
 
   @Override
   protected boolean canSend() {
-    return partitioner.canSend();
+    return fragmentContext.isChannelWritable() && partitioner.canSend();
   }
 
   @Override
