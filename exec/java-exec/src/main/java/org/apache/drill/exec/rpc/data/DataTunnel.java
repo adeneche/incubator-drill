@@ -21,23 +21,18 @@ import io.netty.buffer.ByteBuf;
 
 import java.util.concurrent.Semaphore;
 
-import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.proto.BitData.RpcType;
 import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
 import org.apache.drill.exec.record.FragmentWritableBatch;
-import org.apache.drill.exec.rpc.DrillRpcFuture;
-import org.apache.drill.exec.rpc.FutureBitCommand;
 import org.apache.drill.exec.rpc.ListeningCommand;
-import org.apache.drill.exec.rpc.RpcConnectionHandler.FailureType;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import org.apache.drill.exec.testing.ControlsInjector;
 import org.apache.drill.exec.testing.ExecutionControls;
-import org.apache.drill.exec.testing.ExecutionControlsInjector;
 
 
 public class DataTunnel {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataTunnel.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataTunnel.class);
 
   public static final int SENDING_BUFFER_SIZE = 3;
   private final DataConnectionManager manager;
@@ -82,7 +77,7 @@ public class DataTunnel {
     this.testLogger = testLogger;
   }
 
-  public void sendRecordBatch(RpcOutcomeListener<Ack> outcomeListener, FragmentWritableBatch batch) {
+  public boolean sendRecordBatch(RpcOutcomeListener<Ack> outcomeListener, FragmentWritableBatch batch) {
     SendBatchAsyncListen b = new SendBatchAsyncListen(outcomeListener, batch);
     try{
       if (isInjectionControlSet) {
@@ -93,6 +88,12 @@ public class DataTunnel {
 
       sendingSemaphore.acquire();
       manager.runCommand(b);
+
+      if (!b.batchSent) {
+        sendingSemaphore.release();
+        return false;
+      }
+      return true;
     }catch(final InterruptedException e){
       // Release the buffers first before informing the listener about the interrupt.
       for(ByteBuf buffer : batch.getBuffers()) {
@@ -105,24 +106,13 @@ public class DataTunnel {
       // interruption and respond to it if it wants to.
       Thread.currentThread().interrupt();
     }
+
+    return true;
   }
 
-  // TODO: This is not used anywhere. Can we remove this method and SendBatchAsyncFuture?
-  public DrillRpcFuture<Ack> sendRecordBatch(FragmentContext context, FragmentWritableBatch batch) {
-    SendBatchAsyncFuture b = new SendBatchAsyncFuture(batch, context);
-    try{
-      sendingSemaphore.acquire();
-      manager.runCommand(b);
-    }catch(final InterruptedException e){
-      b.connectionFailed(FailureType.CONNECTION, new RpcException("Interrupted while trying to get sending semaphore.", e));
-
-      // Preserve evidence that the interruption occurred so that code higher up on the call stack can learn of the
-      // interruption and respond to it if it wants to.
-      Thread.currentThread().interrupt();
-    }
-    return b.getFuture();
+  public DataConnectionManager getManager() {
+    return manager;
   }
-
 
   private class ThrottlingOutcomeListener implements RpcOutcomeListener<Ack>{
     RpcOutcomeListener<Ack> inner;
@@ -153,6 +143,7 @@ public class DataTunnel {
 
   private class SendBatchAsyncListen extends ListeningCommand<Ack, DataClientConnection> {
     final FragmentWritableBatch batch;
+    boolean batchSent;
 
     public SendBatchAsyncListen(RpcOutcomeListener<Ack> listener, FragmentWritableBatch batch) {
       super(listener);
@@ -161,7 +152,10 @@ public class DataTunnel {
 
     @Override
     public void doRpcCall(RpcOutcomeListener<Ack> outcomeListener, DataClientConnection connection) {
-      connection.send(new ThrottlingOutcomeListener(outcomeListener), RpcType.REQ_RECORD_BATCH, batch.getHeader(), Ack.class, batch.getBuffers());
+      batchSent = connection.getChannel().isWritable();
+      if (batchSent) {
+        connection.sendNotBlocking(new ThrottlingOutcomeListener(outcomeListener), RpcType.REQ_RECORD_BATCH, batch.getHeader(), Ack.class, batch.getBuffers());
+      }
     }
 
     @Override
@@ -175,27 +169,6 @@ public class DataTunnel {
         buffer.release();
       }
       super.connectionFailed(type, t);
-    }
-  }
-
-  private class SendBatchAsyncFuture extends FutureBitCommand<Ack, DataClientConnection> {
-    final FragmentWritableBatch batch;
-    final FragmentContext context;
-
-    public SendBatchAsyncFuture(FragmentWritableBatch batch, FragmentContext context) {
-      super();
-      this.batch = batch;
-      this.context = context;
-    }
-
-    @Override
-    public void doRpcCall(RpcOutcomeListener<Ack> outcomeListener, DataClientConnection connection) {
-      connection.send(new ThrottlingOutcomeListener(outcomeListener), RpcType.REQ_RECORD_BATCH, batch.getHeader(), Ack.class, batch.getBuffers());
-    }
-
-    @Override
-    public String toString() {
-      return "SendBatch [batch.header=" + batch.getHeader() + "]";
     }
   }
 
