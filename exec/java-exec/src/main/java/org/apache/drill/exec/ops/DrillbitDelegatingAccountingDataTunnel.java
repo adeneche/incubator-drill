@@ -47,13 +47,13 @@ public class DrillbitDelegatingAccountingDataTunnel implements AccountingDataTun
   }
 
   @Override
-  public void sendRecordBatch(FragmentWritableBatch batch) {
-    sendRecordBatch(getStatusHandler(), batch);
+  public boolean sendRecordBatch(FragmentWritableBatch batch) {
+    return sendRecordBatch(getStatusHandler(), batch);
   }
 
   @Override
-  public void sendRecordBatch(RpcOutcomeListener<GeneralRPCProtos.Ack> listener, FragmentWritableBatch batch) {
-    delegate.sendRecordBatch(listener, batch);
+  public boolean sendRecordBatch(RpcOutcomeListener<GeneralRPCProtos.Ack> listener, FragmentWritableBatch batch) {
+    return delegate.sendRecordBatch(listener, batch);
   }
 
   @Override

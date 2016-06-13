@@ -32,6 +32,7 @@ import org.apache.drill.exec.record.BatchSchema;
 import org.apache.drill.exec.record.FragmentWritableBatch;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.record.RecordBatch.IterOutcome;
+import org.apache.drill.exec.record.WritableBatch;
 import org.apache.drill.exec.testing.ControlsInjector;
 import org.apache.drill.exec.testing.ControlsInjectorFactory;
 
@@ -44,7 +45,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
     return new SingleSenderRootExec(context, children.iterator().next(), config);
   }
 
-  public static class SingleSenderRootExec extends BaseRootExec {
+  public static class SingleSenderRootExec extends BaseRootExec<SingleSenderRootExec.SingleSenderIterationState> {
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SingleSenderRootExec.class);
     private static final ControlsInjector injector = ControlsInjectorFactory.getInjector(SingleSenderRootExec.class);
 
@@ -65,7 +66,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
       }
     }
 
-    public SingleSenderRootExec(FragmentContext context, RecordBatch batch, SingleSender config) throws OutOfMemoryException {
+    SingleSenderRootExec(FragmentContext context, RecordBatch batch, SingleSender config) throws OutOfMemoryException {
       super(context, context.newOperatorContext(config, null), config);
       this.incoming = batch;
       assert incoming != null;
@@ -95,27 +96,30 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
 
       IterOutcome out;
       final boolean isPendingIteration = hasPendingState();
+      final SingleSenderIterationState state;
       if (isPendingIteration) {
         if (!canSend()) { // this should never happen
           logger.error("sending buffers must have been available at this point");
           return IterationResult.SENDING_BUFFER_FULL;
         }
         // restore previous outcome
-        final IterationState pendingState = restorePendingState();
+        state = restorePendingState();
         clearPendingState();
-        out = pendingState.outcome;
+        out = state.outcome;
         logger.trace("restored pending state outcome {}", out);
       } else if (!done) {
         out = next(incoming);
+        state = null;
         // if we got a state where we need to send a batch but buffer is not available. save the state and back off.
         logger.trace("got new outcome {}", out);
         if (RootExecHelper.isInSendingState(out) && !canSend()) {
-          savePendingState(IterationState.of(out));
+          savePendingState(new SingleSenderIterationState(out, null));
           logger.trace("cannot send. saving state of {}", out);
           return IterationResult.SENDING_BUFFER_FULL;
         }
       } else {
         incoming.kill(true);
+        state = null;
         out = IterOutcome.NONE;
       }
       clearPendingState();
@@ -136,7 +140,10 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
             sendSchema);
         stats.startWait();
         try {
-          tunnel.sendRecordBatch(b2);
+          if (!tunnel.sendRecordBatch(b2)) {
+            savePendingState(new SingleSenderIterationState(out, null));
+            return IterationResult.SENDING_BUFFER_FULL;
+          }
           updateStats(b2);
         } finally {
           stats.stopWait();
@@ -145,13 +152,22 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
 
       case OK_NEW_SCHEMA:
       case OK:
+        final WritableBatch writableBatch;
+        if (isPendingIteration && state.batch != null) {
+          writableBatch = state.batch;
+        } else {
+          writableBatch = incoming.getWritableBatch().transfer(oContext.getAllocator());
+        }
         final FragmentWritableBatch batch = new FragmentWritableBatch(
             false, handle.getQueryId(), handle.getMajorFragmentId(),
             handle.getMinorFragmentId(), oppositeHandle.getMajorFragmentId(), oppositeHandle.getMinorFragmentId(),
-            incoming.getWritableBatch().transfer(oContext.getAllocator()));
+            writableBatch);
         stats.startWait();
         try {
-          tunnel.sendRecordBatch(batch);
+          if (!tunnel.sendRecordBatch(batch)) {
+            savePendingState(new SingleSenderIterationState(out, writableBatch));
+            return IterationResult.SENDING_BUFFER_FULL;
+          }
           updateStats(batch);
         } finally {
           stats.stopWait();
@@ -162,13 +178,35 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
       }
     }
 
-    public void updateStats(FragmentWritableBatch writableBatch) {
+    void updateStats(FragmentWritableBatch writableBatch) {
       stats.addLongStat(Metric.BYTES_SENT, writableBatch.getByteCount());
+    }
+
+    @Override
+    public void close() throws Exception {
+      super.close();
+
+      if (hasPendingState()) {
+        SingleSenderIterationState state = restorePendingState();
+        if (state.batch != null) {
+          state.batch.clear();
+        }
+        clearPendingState();
+      }
     }
 
     @Override
     public void receivingFragmentFinished(FragmentHandle handle) {
       done = true;
+    }
+
+    static class SingleSenderIterationState extends BaseRootExec.IterationState {
+      private final WritableBatch batch;
+
+      SingleSenderIterationState(IterOutcome outcome, WritableBatch batch) {
+        super(outcome);
+        this.batch = batch;
+      }
     }
   }
 }

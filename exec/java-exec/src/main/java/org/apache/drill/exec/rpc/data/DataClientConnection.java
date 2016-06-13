@@ -30,7 +30,7 @@ import org.apache.drill.exec.rpc.RpcOutcomeListener;
 import com.google.protobuf.MessageLite;
 
 public class DataClientConnection extends RemoteConnection{
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataClientConnection.class);
+//  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DataClientConnection.class);
 
   private final DataClient client;
   private final UUID id;
@@ -47,10 +47,10 @@ public class DataClientConnection extends RemoteConnection{
     return client.getAllocator();
   }
 
-  public <SEND extends MessageLite, RECEIVE extends MessageLite> void send(RpcOutcomeListener<RECEIVE> outcomeListener, RpcType rpcType,
+  public <SEND extends MessageLite, RECEIVE extends MessageLite> void sendNotBlocking(
+      RpcOutcomeListener<RECEIVE> outcomeListener, RpcType rpcType,
       SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
-    client.send(outcomeListener, this, rpcType, protobufBody, clazz, dataBodies);
-
+    client.sendNotBlocking(outcomeListener, this, rpcType, protobufBody, clazz, dataBodies);
   }
 
   @Override

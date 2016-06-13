@@ -153,7 +153,7 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
 
     @Override
     public void connectionSucceeded(CONNECTION_TYPE incoming) {
-      CONNECTION_TYPE connection = connectionHolder.get();
+      CONNECTION_TYPE connection;
       while (true) {
         boolean setted = connectionHolder.compareAndSet(null, incoming);
         if (setted) {
@@ -170,6 +170,8 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
         // close the incoming because another channel was created in the mean time (unless this is a self connection).
         logger.debug("Closing incoming connection because a connection was already set.");
         incoming.getChannel().close();
+      } else {
+        connectionUpdated(connection);
       }
       set(connection);
 
@@ -206,13 +208,18 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
 
   }
 
+  protected void connectionUpdated(CONNECTION_TYPE connection) {
+  }
+
   public CloseHandlerCreator getCloseHandlerCreator() {
     return new CloseHandlerCreator();
   }
 
   public void addExternalConnection(CONNECTION_TYPE connection) {
     // if the connection holder is not set, set it to this incoming connection. We'll simply ignore if already set.
-    this.connectionHolder.compareAndSet(null, connection);
+    if (this.connectionHolder.compareAndSet(null, connection)) {
+      connectionUpdated(connection);
+    }
   }
 
   @Override
@@ -220,49 +227,6 @@ public abstract class ReconnectingConnection<CONNECTION_TYPE extends RemoteConne
     CONNECTION_TYPE c = connectionHolder.getAndSet(null);
     if (c != null) {
       c.getChannel().close();
-    }
-  }
-
-  /**
-   * Decorate a connection creation so that we capture a success and keep it available for future requests. If we have
-   * raced and another is already available... we return that one and close things down on this one.
-   */
-  private class ConnectionListeningDecorator implements RpcConnectionHandler<CONNECTION_TYPE> {
-
-    private final RpcConnectionHandler<CONNECTION_TYPE> delegate;
-
-    public ConnectionListeningDecorator(RpcConnectionHandler<CONNECTION_TYPE> delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public void connectionSucceeded(CONNECTION_TYPE incoming) {
-      CONNECTION_TYPE connection = connectionHolder.get();
-      while (true) {
-        boolean setted = connectionHolder.compareAndSet(null, incoming);
-        if (setted) {
-          connection = incoming;
-          break;
-        }
-        connection = connectionHolder.get();
-        if (connection != null) {
-          break;
-        }
-      }
-
-      if (connection == incoming) {
-        delegate.connectionSucceeded(connection);
-      } else {
-        // close the incoming because another channel was created in the mean time (unless this is a self connection).
-        logger.debug("Closing incoming connection because a connection was already set.");
-        incoming.getChannel().close();
-        delegate.connectionSucceeded(connection);
-      }
-    }
-
-    @Override
-    public void connectionFailed(org.apache.drill.exec.rpc.RpcConnectionHandler.FailureType type, Throwable t) {
-      delegate.connectionFailed(type, t);
     }
   }
 
