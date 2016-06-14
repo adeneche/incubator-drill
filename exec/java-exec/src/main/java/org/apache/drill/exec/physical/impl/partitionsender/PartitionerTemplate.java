@@ -306,7 +306,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     @Override
     public void terminate() {
       // receiver already terminated, don't send anything to it from now on
-      state = PartitionState.CANCELLED;
+      state = PartitionState.COMPLETED;
     }
 
     public boolean isCompleted() {

@@ -95,7 +95,10 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
 
       IterOutcome out;
       final boolean isPendingIteration = hasPendingState();
-      if (isPendingIteration) {
+      if (done) {
+        incoming.kill(true);
+        out = IterOutcome.NONE;
+      } else if (isPendingIteration) {
         if (!canSend()) { // this should never happen
           logger.error("sending buffers must have been available at this point");
           return IterationResult.SENDING_BUFFER_FULL;
@@ -105,7 +108,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         clearPendingState();
         out = pendingState.outcome;
         logger.trace("restored pending state outcome {}", out);
-      } else if (!done) {
+      } else {
         out = next(incoming);
         // if we got a state where we need to send a batch but buffer is not available. save the state and back off.
         logger.trace("got new outcome {}", out);
@@ -114,9 +117,6 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
           logger.trace("cannot send. saving state of {}", out);
           return IterationResult.SENDING_BUFFER_FULL;
         }
-      } else {
-        incoming.kill(true);
-        out = IterOutcome.NONE;
       }
       clearPendingState();
 //      logger.debug("Outcome of sender next {}", out);
