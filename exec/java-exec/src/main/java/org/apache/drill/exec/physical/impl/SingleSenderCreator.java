@@ -127,19 +127,21 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         throw new OutOfMemoryException();
       case STOP:
       case NONE:
-        // if we didn't do anything yet, send an empty schema.
-        final BatchSchema sendSchema = incoming.getSchema() == null ?
+        if (!done) {
+          // if we didn't do anything yet, send an empty schema.
+          final BatchSchema sendSchema = incoming.getSchema() == null ?
             BatchSchema.newBuilder().build() : incoming.getSchema();
 
-        final FragmentWritableBatch b2 = FragmentWritableBatch.getEmptyLastWithSchema(handle.getQueryId(),
+          final FragmentWritableBatch b2 = FragmentWritableBatch.getEmptyLastWithSchema(handle.getQueryId(),
             handle.getMajorFragmentId(), handle.getMinorFragmentId(), oppositeHandle.getMajorFragmentId(), oppositeHandle.getMinorFragmentId(),
             sendSchema);
-        stats.startWait();
-        try {
-          tunnel.sendRecordBatch(b2);
-          updateStats(b2);
-        } finally {
-          stats.stopWait();
+          stats.startWait();
+          try {
+            tunnel.sendRecordBatch(b2);
+            updateStats(b2);
+          } finally {
+            stats.stopWait();
+          }
         }
         return IterationResult.COMPLETED;
 
