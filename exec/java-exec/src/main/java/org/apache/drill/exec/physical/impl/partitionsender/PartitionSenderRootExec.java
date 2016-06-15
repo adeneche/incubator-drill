@@ -145,14 +145,15 @@ public class PartitionSenderRootExec extends BaseRootExec<PartitionSenderIterati
     final boolean isPendingIteration = hasPendingState();
     final PartitionSenderIterationState pendingState = restorePendingState();
     IterOutcome out;
-    if (isPendingIteration) {
-      out = pendingState.outcome;
-      clearPendingState();
-    } else if (!done) {
-      out = next(incoming);
-    } else {
+    if (done) {
       incoming.kill(true);
       out = IterOutcome.NONE;
+      //TODO make sure we cleanup any pending state's buffer
+    } else if (isPendingIteration) {
+      out = pendingState.outcome;
+      clearPendingState();
+    } else {
+      out = next(incoming);
     }
 
 //    if (first && out == IterOutcome.OK) {
