@@ -16447,6 +16447,36 @@ public final class UserBitShared {
      * <code>optional int64 last_progress = 11;</code>
      */
     long getLastProgress();
+
+    // optional int64 total_time_queued = 12;
+    /**
+     * <code>optional int64 total_time_queued = 12;</code>
+     */
+    boolean hasTotalTimeQueued();
+    /**
+     * <code>optional int64 total_time_queued = 12;</code>
+     */
+    long getTotalTimeQueued();
+
+    // optional int64 wait_on_read = 13;
+    /**
+     * <code>optional int64 wait_on_read = 13;</code>
+     */
+    boolean hasWaitOnRead();
+    /**
+     * <code>optional int64 wait_on_read = 13;</code>
+     */
+    long getWaitOnRead();
+
+    // optional int64 wait_on_send = 14;
+    /**
+     * <code>optional int64 wait_on_send = 14;</code>
+     */
+    boolean hasWaitOnSend();
+    /**
+     * <code>optional int64 wait_on_send = 14;</code>
+     */
+    long getWaitOnSend();
   }
   /**
    * Protobuf type {@code exec.shared.MinorFragmentProfile}
@@ -16577,6 +16607,21 @@ public final class UserBitShared {
             case 88: {
               bitField0_ |= 0x00000200;
               lastProgress_ = input.readInt64();
+              break;
+            }
+            case 96: {
+              bitField0_ |= 0x00000400;
+              totalTimeQueued_ = input.readInt64();
+              break;
+            }
+            case 104: {
+              bitField0_ |= 0x00000800;
+              waitOnRead_ = input.readInt64();
+              break;
+            }
+            case 112: {
+              bitField0_ |= 0x00001000;
+              waitOnSend_ = input.readInt64();
               break;
             }
           }
@@ -16830,6 +16875,54 @@ public final class UserBitShared {
       return lastProgress_;
     }
 
+    // optional int64 total_time_queued = 12;
+    public static final int TOTAL_TIME_QUEUED_FIELD_NUMBER = 12;
+    private long totalTimeQueued_;
+    /**
+     * <code>optional int64 total_time_queued = 12;</code>
+     */
+    public boolean hasTotalTimeQueued() {
+      return ((bitField0_ & 0x00000400) == 0x00000400);
+    }
+    /**
+     * <code>optional int64 total_time_queued = 12;</code>
+     */
+    public long getTotalTimeQueued() {
+      return totalTimeQueued_;
+    }
+
+    // optional int64 wait_on_read = 13;
+    public static final int WAIT_ON_READ_FIELD_NUMBER = 13;
+    private long waitOnRead_;
+    /**
+     * <code>optional int64 wait_on_read = 13;</code>
+     */
+    public boolean hasWaitOnRead() {
+      return ((bitField0_ & 0x00000800) == 0x00000800);
+    }
+    /**
+     * <code>optional int64 wait_on_read = 13;</code>
+     */
+    public long getWaitOnRead() {
+      return waitOnRead_;
+    }
+
+    // optional int64 wait_on_send = 14;
+    public static final int WAIT_ON_SEND_FIELD_NUMBER = 14;
+    private long waitOnSend_;
+    /**
+     * <code>optional int64 wait_on_send = 14;</code>
+     */
+    public boolean hasWaitOnSend() {
+      return ((bitField0_ & 0x00001000) == 0x00001000);
+    }
+    /**
+     * <code>optional int64 wait_on_send = 14;</code>
+     */
+    public long getWaitOnSend() {
+      return waitOnSend_;
+    }
+
     private void initFields() {
       state_ = org.apache.drill.exec.proto.UserBitShared.FragmentState.SENDING;
       error_ = org.apache.drill.exec.proto.UserBitShared.DrillPBError.getDefaultInstance();
@@ -16842,6 +16935,9 @@ public final class UserBitShared {
       endpoint_ = org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint.getDefaultInstance();
       lastUpdate_ = 0L;
       lastProgress_ = 0L;
+      totalTimeQueued_ = 0L;
+      waitOnRead_ = 0L;
+      waitOnSend_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -16887,6 +16983,15 @@ public final class UserBitShared {
       }
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
         output.writeInt64(11, lastProgress_);
+      }
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
+        output.writeInt64(12, totalTimeQueued_);
+      }
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+        output.writeInt64(13, waitOnRead_);
+      }
+      if (((bitField0_ & 0x00001000) == 0x00001000)) {
+        output.writeInt64(14, waitOnSend_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -16940,6 +17045,18 @@ public final class UserBitShared {
       if (((bitField0_ & 0x00000200) == 0x00000200)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(11, lastProgress_);
+      }
+      if (((bitField0_ & 0x00000400) == 0x00000400)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(12, totalTimeQueued_);
+      }
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(13, waitOnRead_);
+      }
+      if (((bitField0_ & 0x00001000) == 0x00001000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(14, waitOnSend_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -17094,6 +17211,12 @@ public final class UserBitShared {
         bitField0_ = (bitField0_ & ~0x00000200);
         lastProgress_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000400);
+        totalTimeQueued_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000800);
+        waitOnRead_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00001000);
+        waitOnSend_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00002000);
         return this;
       }
 
@@ -17179,6 +17302,18 @@ public final class UserBitShared {
           to_bitField0_ |= 0x00000200;
         }
         result.lastProgress_ = lastProgress_;
+        if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
+          to_bitField0_ |= 0x00000400;
+        }
+        result.totalTimeQueued_ = totalTimeQueued_;
+        if (((from_bitField0_ & 0x00001000) == 0x00001000)) {
+          to_bitField0_ |= 0x00000800;
+        }
+        result.waitOnRead_ = waitOnRead_;
+        if (((from_bitField0_ & 0x00002000) == 0x00002000)) {
+          to_bitField0_ |= 0x00001000;
+        }
+        result.waitOnSend_ = waitOnSend_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -17250,6 +17385,15 @@ public final class UserBitShared {
         }
         if (other.hasLastProgress()) {
           setLastProgress(other.getLastProgress());
+        }
+        if (other.hasTotalTimeQueued()) {
+          setTotalTimeQueued(other.getTotalTimeQueued());
+        }
+        if (other.hasWaitOnRead()) {
+          setWaitOnRead(other.getWaitOnRead());
+        }
+        if (other.hasWaitOnSend()) {
+          setWaitOnSend(other.getWaitOnSend());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -18015,6 +18159,105 @@ public final class UserBitShared {
       public Builder clearLastProgress() {
         bitField0_ = (bitField0_ & ~0x00000400);
         lastProgress_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional int64 total_time_queued = 12;
+      private long totalTimeQueued_ ;
+      /**
+       * <code>optional int64 total_time_queued = 12;</code>
+       */
+      public boolean hasTotalTimeQueued() {
+        return ((bitField0_ & 0x00000800) == 0x00000800);
+      }
+      /**
+       * <code>optional int64 total_time_queued = 12;</code>
+       */
+      public long getTotalTimeQueued() {
+        return totalTimeQueued_;
+      }
+      /**
+       * <code>optional int64 total_time_queued = 12;</code>
+       */
+      public Builder setTotalTimeQueued(long value) {
+        bitField0_ |= 0x00000800;
+        totalTimeQueued_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 total_time_queued = 12;</code>
+       */
+      public Builder clearTotalTimeQueued() {
+        bitField0_ = (bitField0_ & ~0x00000800);
+        totalTimeQueued_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional int64 wait_on_read = 13;
+      private long waitOnRead_ ;
+      /**
+       * <code>optional int64 wait_on_read = 13;</code>
+       */
+      public boolean hasWaitOnRead() {
+        return ((bitField0_ & 0x00001000) == 0x00001000);
+      }
+      /**
+       * <code>optional int64 wait_on_read = 13;</code>
+       */
+      public long getWaitOnRead() {
+        return waitOnRead_;
+      }
+      /**
+       * <code>optional int64 wait_on_read = 13;</code>
+       */
+      public Builder setWaitOnRead(long value) {
+        bitField0_ |= 0x00001000;
+        waitOnRead_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 wait_on_read = 13;</code>
+       */
+      public Builder clearWaitOnRead() {
+        bitField0_ = (bitField0_ & ~0x00001000);
+        waitOnRead_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // optional int64 wait_on_send = 14;
+      private long waitOnSend_ ;
+      /**
+       * <code>optional int64 wait_on_send = 14;</code>
+       */
+      public boolean hasWaitOnSend() {
+        return ((bitField0_ & 0x00002000) == 0x00002000);
+      }
+      /**
+       * <code>optional int64 wait_on_send = 14;</code>
+       */
+      public long getWaitOnSend() {
+        return waitOnSend_;
+      }
+      /**
+       * <code>optional int64 wait_on_send = 14;</code>
+       */
+      public Builder setWaitOnSend(long value) {
+        bitField0_ |= 0x00002000;
+        waitOnSend_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 wait_on_send = 14;</code>
+       */
+      public Builder clearWaitOnSend() {
+        bitField0_ = (bitField0_ & ~0x00002000);
+        waitOnSend_ = 0L;
         onChanged();
         return this;
       }
@@ -20841,7 +21084,7 @@ public final class UserBitShared {
       "\001(\t\"t\n\024MajorFragmentProfile\022\031\n\021major_fra" +
       "gment_id\030\001 \001(\005\022A\n\026minor_fragment_profile" +
       "\030\002 \003(\0132!.exec.shared.MinorFragmentProfil" +
-      "e\"\350\002\n\024MinorFragmentProfile\022)\n\005state\030\001 \001(" +
+      "e\"\257\003\n\024MinorFragmentProfile\022)\n\005state\030\001 \001(" +
       "\0162\032.exec.shared.FragmentState\022(\n\005error\030\002" +
       " \001(\0132\031.exec.shared.DrillPBError\022\031\n\021minor" +
       "_fragment_id\030\003 \001(\005\0226\n\020operator_profile\030\004",
@@ -20850,42 +21093,44 @@ public final class UserBitShared {
       "ry_used\030\007 \001(\003\022\027\n\017max_memory_used\030\010 \001(\003\022(" +
       "\n\010endpoint\030\t \001(\0132\026.exec.DrillbitEndpoint" +
       "\022\023\n\013last_update\030\n \001(\003\022\025\n\rlast_progress\030\013" +
-      " \001(\003\"\377\001\n\017OperatorProfile\0221\n\rinput_profil" +
-      "e\030\001 \003(\0132\032.exec.shared.StreamProfile\022\023\n\013o" +
-      "perator_id\030\003 \001(\005\022\025\n\roperator_type\030\004 \001(\005\022" +
-      "\023\n\013setup_nanos\030\005 \001(\003\022\025\n\rprocess_nanos\030\006 " +
-      "\001(\003\022#\n\033peak_local_memory_allocated\030\007 \001(\003",
-      "\022(\n\006metric\030\010 \003(\0132\030.exec.shared.MetricVal" +
-      "ue\022\022\n\nwait_nanos\030\t \001(\003\"B\n\rStreamProfile\022" +
-      "\017\n\007records\030\001 \001(\003\022\017\n\007batches\030\002 \001(\003\022\017\n\007sch" +
-      "emas\030\003 \001(\003\"J\n\013MetricValue\022\021\n\tmetric_id\030\001" +
-      " \001(\005\022\022\n\nlong_value\030\002 \001(\003\022\024\n\014double_value" +
-      "\030\003 \001(\001*5\n\nRpcChannel\022\017\n\013BIT_CONTROL\020\000\022\014\n" +
-      "\010BIT_DATA\020\001\022\010\n\004USER\020\002*/\n\tQueryType\022\007\n\003SQ" +
-      "L\020\001\022\013\n\007LOGICAL\020\002\022\014\n\010PHYSICAL\020\003*\207\001\n\rFragm" +
-      "entState\022\013\n\007SENDING\020\000\022\027\n\023AWAITING_ALLOCA" +
-      "TION\020\001\022\013\n\007RUNNING\020\002\022\014\n\010FINISHED\020\003\022\r\n\tCAN",
-      "CELLED\020\004\022\n\n\006FAILED\020\005\022\032\n\026CANCELLATION_REQ" +
-      "UESTED\020\006*\335\005\n\020CoreOperatorType\022\021\n\rSINGLE_" +
-      "SENDER\020\000\022\024\n\020BROADCAST_SENDER\020\001\022\n\n\006FILTER" +
-      "\020\002\022\022\n\016HASH_AGGREGATE\020\003\022\r\n\tHASH_JOIN\020\004\022\016\n" +
-      "\nMERGE_JOIN\020\005\022\031\n\025HASH_PARTITION_SENDER\020\006" +
-      "\022\t\n\005LIMIT\020\007\022\024\n\020MERGING_RECEIVER\020\010\022\034\n\030ORD" +
-      "ERED_PARTITION_SENDER\020\t\022\013\n\007PROJECT\020\n\022\026\n\022" +
-      "UNORDERED_RECEIVER\020\013\022\020\n\014RANGE_SENDER\020\014\022\n" +
-      "\n\006SCREEN\020\r\022\034\n\030SELECTION_VECTOR_REMOVER\020\016" +
-      "\022\027\n\023STREAMING_AGGREGATE\020\017\022\016\n\nTOP_N_SORT\020",
-      "\020\022\021\n\rEXTERNAL_SORT\020\021\022\t\n\005TRACE\020\022\022\t\n\005UNION" +
-      "\020\023\022\014\n\010OLD_SORT\020\024\022\032\n\026PARQUET_ROW_GROUP_SC" +
-      "AN\020\025\022\021\n\rHIVE_SUB_SCAN\020\026\022\025\n\021SYSTEM_TABLE_" +
-      "SCAN\020\027\022\021\n\rMOCK_SUB_SCAN\020\030\022\022\n\016PARQUET_WRI" +
-      "TER\020\031\022\023\n\017DIRECT_SUB_SCAN\020\032\022\017\n\013TEXT_WRITE" +
-      "R\020\033\022\021\n\rTEXT_SUB_SCAN\020\034\022\021\n\rJSON_SUB_SCAN\020" +
-      "\035\022\030\n\024INFO_SCHEMA_SUB_SCAN\020\036\022\023\n\017COMPLEX_T" +
-      "O_JSON\020\037\022\025\n\021PRODUCER_CONSUMER\020 \022\022\n\016HBASE" +
-      "_SUB_SCAN\020!\022\n\n\006WINDOW\020\"\022\024\n\020NESTED_LOOP_J" +
-      "OIN\020#\022\021\n\rAVRO_SUB_SCAN\020$B.\n\033org.apache.d",
-      "rill.exec.protoB\rUserBitSharedH\001"
+      " \001(\003\022\031\n\021total_time_queued\030\014 \001(\003\022\024\n\014wait_" +
+      "on_read\030\r \001(\003\022\024\n\014wait_on_send\030\016 \001(\003\"\377\001\n\017" +
+      "OperatorProfile\0221\n\rinput_profile\030\001 \003(\0132\032" +
+      ".exec.shared.StreamProfile\022\023\n\013operator_i" +
+      "d\030\003 \001(\005\022\025\n\roperator_type\030\004 \001(\005\022\023\n\013setup_",
+      "nanos\030\005 \001(\003\022\025\n\rprocess_nanos\030\006 \001(\003\022#\n\033pe" +
+      "ak_local_memory_allocated\030\007 \001(\003\022(\n\006metri" +
+      "c\030\010 \003(\0132\030.exec.shared.MetricValue\022\022\n\nwai" +
+      "t_nanos\030\t \001(\003\"B\n\rStreamProfile\022\017\n\007record" +
+      "s\030\001 \001(\003\022\017\n\007batches\030\002 \001(\003\022\017\n\007schemas\030\003 \001(" +
+      "\003\"J\n\013MetricValue\022\021\n\tmetric_id\030\001 \001(\005\022\022\n\nl" +
+      "ong_value\030\002 \001(\003\022\024\n\014double_value\030\003 \001(\001*5\n" +
+      "\nRpcChannel\022\017\n\013BIT_CONTROL\020\000\022\014\n\010BIT_DATA" +
+      "\020\001\022\010\n\004USER\020\002*/\n\tQueryType\022\007\n\003SQL\020\001\022\013\n\007LO" +
+      "GICAL\020\002\022\014\n\010PHYSICAL\020\003*\207\001\n\rFragmentState\022",
+      "\013\n\007SENDING\020\000\022\027\n\023AWAITING_ALLOCATION\020\001\022\013\n" +
+      "\007RUNNING\020\002\022\014\n\010FINISHED\020\003\022\r\n\tCANCELLED\020\004\022" +
+      "\n\n\006FAILED\020\005\022\032\n\026CANCELLATION_REQUESTED\020\006*" +
+      "\335\005\n\020CoreOperatorType\022\021\n\rSINGLE_SENDER\020\000\022" +
+      "\024\n\020BROADCAST_SENDER\020\001\022\n\n\006FILTER\020\002\022\022\n\016HAS" +
+      "H_AGGREGATE\020\003\022\r\n\tHASH_JOIN\020\004\022\016\n\nMERGE_JO" +
+      "IN\020\005\022\031\n\025HASH_PARTITION_SENDER\020\006\022\t\n\005LIMIT" +
+      "\020\007\022\024\n\020MERGING_RECEIVER\020\010\022\034\n\030ORDERED_PART" +
+      "ITION_SENDER\020\t\022\013\n\007PROJECT\020\n\022\026\n\022UNORDERED" +
+      "_RECEIVER\020\013\022\020\n\014RANGE_SENDER\020\014\022\n\n\006SCREEN\020",
+      "\r\022\034\n\030SELECTION_VECTOR_REMOVER\020\016\022\027\n\023STREA" +
+      "MING_AGGREGATE\020\017\022\016\n\nTOP_N_SORT\020\020\022\021\n\rEXTE" +
+      "RNAL_SORT\020\021\022\t\n\005TRACE\020\022\022\t\n\005UNION\020\023\022\014\n\010OLD" +
+      "_SORT\020\024\022\032\n\026PARQUET_ROW_GROUP_SCAN\020\025\022\021\n\rH" +
+      "IVE_SUB_SCAN\020\026\022\025\n\021SYSTEM_TABLE_SCAN\020\027\022\021\n" +
+      "\rMOCK_SUB_SCAN\020\030\022\022\n\016PARQUET_WRITER\020\031\022\023\n\017" +
+      "DIRECT_SUB_SCAN\020\032\022\017\n\013TEXT_WRITER\020\033\022\021\n\rTE" +
+      "XT_SUB_SCAN\020\034\022\021\n\rJSON_SUB_SCAN\020\035\022\030\n\024INFO" +
+      "_SCHEMA_SUB_SCAN\020\036\022\023\n\017COMPLEX_TO_JSON\020\037\022" +
+      "\025\n\021PRODUCER_CONSUMER\020 \022\022\n\016HBASE_SUB_SCAN",
+      "\020!\022\n\n\006WINDOW\020\"\022\024\n\020NESTED_LOOP_JOIN\020#\022\021\n\r" +
+      "AVRO_SUB_SCAN\020$B.\n\033org.apache.drill.exec" +
+      ".protoB\rUserBitSharedH\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -20987,7 +21232,7 @@ public final class UserBitShared {
           internal_static_exec_shared_MinorFragmentProfile_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_exec_shared_MinorFragmentProfile_descriptor,
-              new java.lang.String[] { "State", "Error", "MinorFragmentId", "OperatorProfile", "StartTime", "EndTime", "MemoryUsed", "MaxMemoryUsed", "Endpoint", "LastUpdate", "LastProgress", });
+              new java.lang.String[] { "State", "Error", "MinorFragmentId", "OperatorProfile", "StartTime", "EndTime", "MemoryUsed", "MaxMemoryUsed", "Endpoint", "LastUpdate", "LastProgress", "TotalTimeQueued", "WaitOnRead", "WaitOnSend", });
           internal_static_exec_shared_OperatorProfile_descriptor =
             getDescriptor().getMessageTypes().get(16);
           internal_static_exec_shared_OperatorProfile_fieldAccessorTable = new
