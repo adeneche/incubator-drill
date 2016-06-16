@@ -60,6 +60,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
     private DrillbitEndpoint endpoint;
     private long lastUpdate;
     private long lastProgress;
+    private long totalTimeQueued;
+    private long waitOnRead;
+    private long waitOnSend;
 
     public MinorFragmentProfile()
     {
@@ -211,6 +214,45 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         return this;
     }
 
+    // totalTimeQueued
+
+    public long getTotalTimeQueued()
+    {
+        return totalTimeQueued;
+    }
+
+    public MinorFragmentProfile setTotalTimeQueued(long totalTimeQueued)
+    {
+        this.totalTimeQueued = totalTimeQueued;
+        return this;
+    }
+
+    // waitOnRead
+
+    public long getWaitOnRead()
+    {
+        return waitOnRead;
+    }
+
+    public MinorFragmentProfile setWaitOnRead(long waitOnRead)
+    {
+        this.waitOnRead = waitOnRead;
+        return this;
+    }
+
+    // waitOnSend
+
+    public long getWaitOnSend()
+    {
+        return waitOnSend;
+    }
+
+    public MinorFragmentProfile setWaitOnSend(long waitOnSend)
+    {
+        this.waitOnSend = waitOnSend;
+        return this;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException
@@ -303,6 +345,15 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
                 case 11:
                     message.lastProgress = input.readInt64();
                     break;
+                case 12:
+                    message.totalTimeQueued = input.readInt64();
+                    break;
+                case 13:
+                    message.waitOnRead = input.readInt64();
+                    break;
+                case 14:
+                    message.waitOnSend = input.readInt64();
+                    break;
                 default:
                     input.handleUnknownField(number, this);
             }   
@@ -353,6 +404,15 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
 
         if(message.lastProgress != 0)
             output.writeInt64(11, message.lastProgress, false);
+
+        if(message.totalTimeQueued != 0)
+            output.writeInt64(12, message.totalTimeQueued, false);
+
+        if(message.waitOnRead != 0)
+            output.writeInt64(13, message.waitOnRead, false);
+
+        if(message.waitOnSend != 0)
+            output.writeInt64(14, message.waitOnSend, false);
     }
 
     public String getFieldName(int number)
@@ -370,6 +430,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
             case 9: return "endpoint";
             case 10: return "lastUpdate";
             case 11: return "lastProgress";
+            case 12: return "totalTimeQueued";
+            case 13: return "waitOnRead";
+            case 14: return "waitOnSend";
             default: return null;
         }
     }
@@ -394,6 +457,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         __fieldMap.put("endpoint", 9);
         __fieldMap.put("lastUpdate", 10);
         __fieldMap.put("lastProgress", 11);
+        __fieldMap.put("totalTimeQueued", 12);
+        __fieldMap.put("waitOnRead", 13);
+        __fieldMap.put("waitOnSend", 14);
     }
     
 }

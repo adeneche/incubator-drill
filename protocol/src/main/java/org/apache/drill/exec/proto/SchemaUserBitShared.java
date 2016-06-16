@@ -2113,6 +2113,12 @@ public final class SchemaUserBitShared
                     output.writeInt64(10, message.getLastUpdate(), false);
                 if(message.hasLastProgress())
                     output.writeInt64(11, message.getLastProgress(), false);
+                if(message.hasTotalTimeQueued())
+                    output.writeInt64(12, message.getTotalTimeQueued(), false);
+                if(message.hasWaitOnRead())
+                    output.writeInt64(13, message.getWaitOnRead(), false);
+                if(message.hasWaitOnSend())
+                    output.writeInt64(14, message.getWaitOnSend(), false);
             }
             public boolean isInitialized(org.apache.drill.exec.proto.UserBitShared.MinorFragmentProfile message)
             {
@@ -2188,6 +2194,15 @@ public final class SchemaUserBitShared
                         case 11:
                             builder.setLastProgress(input.readInt64());
                             break;
+                        case 12:
+                            builder.setTotalTimeQueued(input.readInt64());
+                            break;
+                        case 13:
+                            builder.setWaitOnRead(input.readInt64());
+                            break;
+                        case 14:
+                            builder.setWaitOnSend(input.readInt64());
+                            break;
                         default:
                             input.handleUnknownField(number, this);
                     }
@@ -2239,6 +2254,9 @@ public final class SchemaUserBitShared
                 case 9: return "endpoint";
                 case 10: return "lastUpdate";
                 case 11: return "lastProgress";
+                case 12: return "totalTimeQueued";
+                case 13: return "waitOnRead";
+                case 14: return "waitOnSend";
                 default: return null;
             }
         }
@@ -2261,6 +2279,9 @@ public final class SchemaUserBitShared
             fieldMap.put("endpoint", 9);
             fieldMap.put("lastUpdate", 10);
             fieldMap.put("lastProgress", 11);
+            fieldMap.put("totalTimeQueued", 12);
+            fieldMap.put("waitOnRead", 13);
+            fieldMap.put("waitOnSend", 14);
         }
     }
 

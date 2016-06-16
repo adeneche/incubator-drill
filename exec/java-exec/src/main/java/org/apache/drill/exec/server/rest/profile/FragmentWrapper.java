@@ -106,7 +106,8 @@ public class FragmentWrapper {
   }
 
   public static final String[] FRAGMENT_COLUMNS = {"Minor Fragment ID", "Host Name", "Start", "End",
-    "Runtime", "Max Records", "Max Batches", "Last Update", "Last Progress", "Peak Memory", "State"};
+    "Runtime", "Wait QUEUE", "Wait READ", "Wait SEND", "Max Records", "Max Batches", "Last Update",
+    "Last Progress", "Peak Memory", "State"};
 
   // Not including minor fragment ID
   private static final int NUM_NULLABLE_FRAGMENTS_COLUMNS = FRAGMENT_COLUMNS.length - 1;
@@ -142,7 +143,12 @@ public class FragmentWrapper {
       builder.appendCell(minor.getEndpoint().getAddress(), null);
       builder.appendMillis(minor.getStartTime() - start, null);
       builder.appendMillis(minor.getEndTime() - start, null);
-      builder.appendMillis(minor.getEndTime() - minor.getStartTime(), null);
+      long runningTime = minor.getEndTime() - minor.getStartTime() - minor.getTotalTimeQueued()
+        - minor.getWaitOnRead() - minor.getWaitOnSend();
+      builder.appendMillis(runningTime, null);
+      builder.appendMillis(minor.getTotalTimeQueued(), null);
+      builder.appendMillis(minor.getWaitOnRead(), null);
+      builder.appendMillis(minor.getWaitOnSend(), null);
 
       builder.appendFormattedInteger(biggestIncomingRecords, null);
       builder.appendFormattedInteger(biggestBatches, null);

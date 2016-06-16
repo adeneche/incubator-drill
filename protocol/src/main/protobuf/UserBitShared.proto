@@ -220,6 +220,9 @@ message MinorFragmentProfile {
   optional DrillbitEndpoint endpoint = 9;
   optional int64 last_update = 10;
   optional int64 last_progress = 11;
+  optional int64 total_time_queued = 12;
+  optional int64 wait_on_read = 13;
+  optional int64 wait_on_send = 14;
 }
 
 message OperatorProfile {

@@ -36,6 +36,8 @@ import org.apache.drill.exec.coord.ClusterCoordinator;
 import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.FragmentContext.ExecutorState;
+import org.apache.drill.exec.ops.FragmentStats;
+import org.apache.drill.exec.ops.FragmentStats.WAIT_TYPE;
 import org.apache.drill.exec.physical.base.FragmentRoot;
 import org.apache.drill.exec.physical.impl.ImplCreator;
 import org.apache.drill.exec.physical.impl.IterationResult;
@@ -220,20 +222,26 @@ public class FragmentExecutor implements Runnable {
     receiverExecutor.submitReceiverFinished(handle);
   }
 
-  static class FIFOTask implements Runnable, Comparable {
+  private static class FIFOTask implements Runnable, Comparable {
     private final static AtomicInteger sequencer = new AtomicInteger();
     private final Runnable delegate;
     private final FragmentHandle handle;
+    private final FragmentStats stats;
     private final int rank;
 
-    public FIFOTask(final Runnable delegate, final FragmentHandle handle) {
+    private final long timeAddedToQueue;
+
+    FIFOTask(final Runnable delegate, final FragmentHandle handle, final FragmentStats stats) {
       this.delegate = delegate;
       this.handle = handle;
       this.rank = sequencer.getAndIncrement();
+      this.timeAddedToQueue = System.currentTimeMillis();
+      this.stats = stats;
     }
 
     @Override
     public void run() {
+      stats.addTimeInQueue(System.currentTimeMillis() - timeAddedToQueue);
       delegate.run();
     }
 
@@ -254,8 +262,8 @@ public class FragmentExecutor implements Runnable {
       return 0;
     }
 
-    public static FIFOTask of(final Runnable delegate, final FragmentHandle handle) {
-      return new FIFOTask(delegate, handle);
+    public static FIFOTask of(final Runnable delegate, final FragmentContext context) {
+      return new FIFOTask(delegate, context.getHandle(), context.getStats());
     }
   }
 
@@ -265,6 +273,9 @@ public class FragmentExecutor implements Runnable {
     if (!hasCloseoutThread.compareAndSet(false, true)) {
       return;
     }
+
+    final FragmentStats stats = fragmentContext.getStats();
+    stats.setStartTimeToNow();
 
     boolean success = false;
     try {
@@ -331,10 +342,12 @@ public class FragmentExecutor implements Runnable {
                     logger.trace("this iteration resulted with {}", result);
                     switch (result) {
                     case SENDING_BUFFER_FULL:
+                      stats.startWait(WAIT_TYPE.SEND);
                       root.setSendAvailabilityListener(new SendAvailabilityListener() {
                         @Override
                         public void onSendAvailable(final RootExec exec) {
-                          queue.offer(FIFOTask.of(currentTask, fragmentHandle));
+                          stats.stopWait();
+                          queue.offer(FIFOTask.of(currentTask, fragmentContext));
                           logger.trace("sending provider is now available");
                         }
                       });
@@ -345,10 +358,12 @@ public class FragmentExecutor implements Runnable {
                           fragmentContext.getAndResetBlockingIncomingBatchProvider(),
                           "blocking provider is required.");
 
+                      stats.startWait(WAIT_TYPE.READ);
                       blockingProvider.setReadAvailabilityListener(new ReadAvailabilityListener() {
                         @Override
                         public void onReadAvailable(final IncomingBatchProvider provider) {
-                          queue.offer(FIFOTask.of(currentTask, fragmentHandle));
+                          stats.stopWait();
+                          queue.offer(FIFOTask.of(currentTask, fragmentContext));
                           logger.trace("reading provider is now available");
                         }
                       });
@@ -361,6 +376,8 @@ public class FragmentExecutor implements Runnable {
                       logger.trace("executor state -> iterations: {} isCompleted? {} shouldDefer? {}", count++,
                           isCompleted, shouldDefer);
                       if (shouldDefer) {
+                        //TODO we need to wrap currentTask in a FIFOTask so it gets assigned a new priority
+                        //TODO we should properly account for this wait time
                         queue.offer(currentTask);
                         return null;
                       }
@@ -379,7 +396,7 @@ public class FragmentExecutor implements Runnable {
                         @Override
                         public void sendComplete() {
                           if (cleaned.compareAndSet(false, true)) { // make sure this is only run once
-                            queue.offer(FIFOTask.of(currentTask, fragmentHandle));
+                            queue.offer(FIFOTask.of(currentTask, fragmentContext));
                             logger.trace("send completed, ready to resume completion of fragment {}",
                                 QueryIdHelper.getQueryIdentifier(fragmentHandle));
                           }
@@ -401,7 +418,7 @@ public class FragmentExecutor implements Runnable {
       };
 
       injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-      queue.offer(FIFOTask.of(currentTask, fragmentHandle));
+      queue.offer(FIFOTask.of(currentTask, fragmentContext));
       success = true;
     } catch (OutOfMemoryError | OutOfMemoryException e) {
       if (!(e instanceof OutOfMemoryError) || "Direct buffer memory".equals(e.getMessage())) {
