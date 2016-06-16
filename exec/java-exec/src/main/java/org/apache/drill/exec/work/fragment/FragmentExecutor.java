@@ -300,6 +300,7 @@ public class FragmentExecutor implements Runnable {
             boolean completed = tryComplete(); // finish cleaning up
             Preconditions.checkState(completed,
               "tryComplete() shouldn't return false when resuming a pending completion");
+            executor.setName(originalThreadName);
             return;
           }
 
@@ -626,15 +627,15 @@ public class FragmentExecutor implements Runnable {
   private class FragmentEventProcessor extends EventProcessor<FragmentEvent> {
 
     void cancel() {
-      processEvent(new FragmentEvent(EVENT_TYPE.CANCEL, null));
+      sendEvent(new FragmentEvent(EVENT_TYPE.CANCEL, null));
     }
 
     void cancelAndFinish() {
-      processEvent(new FragmentEvent(EVENT_TYPE.CANCEL_AND_FINISH, null));
+      sendEvent(new FragmentEvent(EVENT_TYPE.CANCEL_AND_FINISH, null));
     }
 
     void receiverFinished(FragmentHandle handle) {
-      processEvent(new FragmentEvent(EVENT_TYPE.RECEIVER_FINISHED, handle));
+      sendEvent(new FragmentEvent(EVENT_TYPE.RECEIVER_FINISHED, handle));
     }
 
     @Override
@@ -656,7 +657,8 @@ public class FragmentExecutor implements Runnable {
           assert event.handle != null : "RECEIVER_FINISHED event must have a handle";
           if (root != null) {
             logger.info("Applying request for early sender termination for {} -> {}.",
-              QueryIdHelper.getFragmentId(getContext().getHandle()), QueryIdHelper.getFragmentId(event.handle));
+              QueryIdHelper.getQueryIdentifier(getContext().getHandle()),
+              QueryIdHelper.getFragmentId(event.handle));
             root.receivingFragmentFinished(event.handle);
           } else {
             logger.warn("Dropping request for early fragment termination for path {} -> {} as no root exec exists.",
