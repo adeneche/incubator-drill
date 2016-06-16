@@ -32,13 +32,25 @@ import com.google.common.collect.Lists;
 public class FragmentStats {
 //  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FragmentStats.class);
 
+  public enum WAIT_TYPE {
+    NONE,
+    READ,
+    SEND
+  }
+
   private List<OperatorStats> operators = Lists.newArrayList();
-  private final long startTime;
+  private long startTime;
   private final DrillbitEndpoint endpoint;
   private final BufferAllocator allocator;
+  private long totalTimeEnqueued;
+
+  private long startWaitTime;
+  private WAIT_TYPE waitType = WAIT_TYPE.NONE;
+
+  private long totalWaitOnRead;
+  private long totalWaitOnSend;
 
   public FragmentStats(BufferAllocator allocator, MetricRegistry metrics, DrillbitEndpoint endpoint) {
-    this.startTime = System.currentTimeMillis();
     this.endpoint = endpoint;
     this.allocator = allocator;
   }
@@ -47,10 +59,48 @@ public class FragmentStats {
     prfB.setStartTime(startTime);
     prfB.setMaxMemoryUsed(allocator.getPeakMemoryAllocation());
     prfB.setEndTime(System.currentTimeMillis());
+    prfB.setTotalTimeQueued(totalTimeEnqueued);
+
+    long waitDuration = System.currentTimeMillis() - startWaitTime;
+    long waitOnRead = totalWaitOnRead + (waitType == WAIT_TYPE.READ ? waitDuration : 0);
+    long waitOnSend = totalWaitOnSend + (waitType == WAIT_TYPE.SEND ? waitDuration : 0);
+    prfB.setWaitOnRead(waitOnRead);
+    prfB.setWaitOnSend(waitOnSend);
+
     prfB.setEndpoint(endpoint);
     for(OperatorStats o : operators){
       prfB.addOperatorProfile(o.getProfile());
     }
+  }
+
+  public void setStartTimeToNow() {
+    startTime = System.currentTimeMillis();
+  }
+
+  public void addTimeInQueue(long timeInQueue) {
+    totalTimeEnqueued += timeInQueue;
+  }
+
+  public void startWait(WAIT_TYPE waitType) {
+    assert this.waitType == WAIT_TYPE.NONE : "shouldn't call startWait until previous wait is stopped";
+
+    this.waitType = waitType;
+    startWaitTime = System.currentTimeMillis();
+  }
+
+  public void stopWait() {
+    long duration = System.currentTimeMillis() - startWaitTime;
+
+    switch (waitType) {
+      case READ:
+        totalWaitOnRead += duration;
+        break;
+      case SEND:
+        totalWaitOnSend += duration;
+        break;
+    }
+
+    waitType = WAIT_TYPE.NONE;
   }
 
   /**
