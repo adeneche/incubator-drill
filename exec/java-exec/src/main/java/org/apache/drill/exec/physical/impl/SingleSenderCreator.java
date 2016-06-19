@@ -105,7 +105,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         }
       } else if (isPendingIteration) {
         if (!canSend()) { // this should never happen
-          logger.error("sending buffers must have been available at this point");
+//          logger.error("sending buffers must have been available at this point");
           return IterationResult.SENDING_BUFFER_FULL;
         }
         out = state.outcome;

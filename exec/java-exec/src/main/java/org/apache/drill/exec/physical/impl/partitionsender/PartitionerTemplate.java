@@ -73,8 +73,6 @@ public abstract class PartitionerTemplate implements Partitioner {
 
   private int outgoingRecordBatchSize = DEFAULT_RECORD_BATCH_SIZE;
 
-  private WritableBatch writableBatch;
-
   public PartitionerTemplate() { }
 
   @Override
@@ -289,6 +287,8 @@ public abstract class PartitionerTemplate implements Partitioner {
     private volatile PartitionState state = PartitionState.INITIAL;
     private int recordCount;
     private int totalRecords;
+
+    private WritableBatch writableBatch;
 
     public OutgoingRecordBatch(OperatorStats stats, HashPartitionSender operator, FragmentAccountingDataTunnel tunnel,
                                FragmentContext context, BufferAllocator allocator) {
