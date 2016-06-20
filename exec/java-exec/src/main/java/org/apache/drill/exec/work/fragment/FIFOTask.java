@@ -48,15 +48,7 @@ public class FIFOTask implements Runnable, Comparable<FIFOTask> {
 
   @Override
   public int compareTo(final FIFOTask o) {
-    final FIFOTask other = FIFOTask.class.cast(o);
-    if (handle.getQueryId().equals(other.handle.getQueryId())) {
-      final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
-      // break ties in fifo order
-      if (result != 0) {
-        return result;
-      }
-    }
-    return rank - other.rank;
+    return rank - o.rank;
   }
 
   public static FIFOTask of(final Runnable delegate, final FragmentContext context) {
