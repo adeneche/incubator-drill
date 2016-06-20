@@ -22,7 +22,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
@@ -210,51 +209,6 @@ public class FragmentExecutor implements Runnable {
     eventProcessor.receiverFinished(handle);
   }
 
-  private static class FIFOTask implements Runnable, Comparable {
-    private final static AtomicInteger sequencer = new AtomicInteger();
-    private final Runnable delegate;
-    private final FragmentHandle handle;
-    private final FragmentStats stats;
-    private final int rank;
-
-    private final long timeAddedToQueue;
-
-    FIFOTask(final Runnable delegate, final FragmentHandle handle, final FragmentStats stats) {
-      this.delegate = delegate;
-      this.handle = handle;
-      this.rank = sequencer.getAndIncrement();
-      this.timeAddedToQueue = System.currentTimeMillis();
-      this.stats = stats;
-    }
-
-    @Override
-    public void run() {
-      stats.addTimeInQueue(System.currentTimeMillis() - timeAddedToQueue);
-      delegate.run();
-    }
-
-    @Override
-    public int compareTo(final Object o) {
-      if (o instanceof FIFOTask) {
-        final FIFOTask other = FIFOTask.class.cast(o);
-        if (handle.getQueryId().equals(other.handle.getQueryId())) {
-          final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
-          // break ties in fifo order
-          if (result != 0) {
-            return result;
-          }
-        }
-        return rank - other.rank;
-      }
-      // otherwise arbitrary order
-      return 0;
-    }
-
-    public static FIFOTask of(final Runnable delegate, final FragmentContext context) {
-      return new FIFOTask(delegate, context.getHandle(), context.getStats());
-    }
-  }
-
   @Override
   public void run() {
     // if a cancel thread has already entered this executor, we have not reason to continue.
@@ -343,6 +297,12 @@ public class FragmentExecutor implements Runnable {
                       logger.trace("sending provider is full. backing off...");
                       return null;
                     case NOT_YET:
+                      if (fragmentContext.getAndResetScanYield()) {
+                        // scan just yielded put the task immediately in the queue
+                        queue.offer(FIFOTask.of(currentTask, fragmentContext));
+                        return null;
+                      }
+
                       final IncomingBatchProvider blockingProvider = Preconditions.checkNotNull(
                           fragmentContext.getAndResetBlockingIncomingBatchProvider(),
                           "blocking provider is required.");
