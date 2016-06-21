@@ -538,6 +538,17 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     return buffer;
   }
 
+  private boolean scanYield = false;
+  public void markScanYield() {
+    scanYield = true;
+  }
+
+  public boolean getAndResetScanYield() {
+    final boolean yield = scanYield;
+    scanYield = false;
+    return yield;
+  }
+
   public interface SendCompleteListener {
     void sendComplete();
   }

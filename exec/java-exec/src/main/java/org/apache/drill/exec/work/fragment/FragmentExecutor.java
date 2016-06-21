@@ -297,6 +297,12 @@ public class FragmentExecutor implements Runnable {
                       logger.trace("sending provider is full. backing off...");
                       return null;
                     case NOT_YET:
+                      if (fragmentContext.getAndResetScanYield()) {
+                        // scan just yielded put the task immediately in the queue
+                        queue.offer(FIFOTask.of(currentTask, fragmentContext));
+                        return null;
+                      }
+
                       final IncomingBatchProvider blockingProvider = Preconditions.checkNotNull(
                           fragmentContext.getAndResetBlockingIncomingBatchProvider(),
                           "blocking provider is required.");
@@ -361,7 +367,6 @@ public class FragmentExecutor implements Runnable {
       };
 
       injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-//      queue.offer(FIFOTask.of(currentTask, fragmentContext));
       success = true; // currentTask will take care of calling tryComplete() if anything goes wrong
       currentTask.run();
     } catch (OutOfMemoryError | OutOfMemoryException e) {
