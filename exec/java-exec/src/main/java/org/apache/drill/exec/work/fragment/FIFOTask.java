@@ -23,7 +23,7 @@ import org.apache.drill.exec.proto.ExecProtos;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-class FIFOTask implements Runnable, Comparable {
+public class FIFOTask implements Runnable, Comparable {
   private final static AtomicInteger sequencer = new AtomicInteger();
   private final Runnable delegate;
   private final ExecProtos.FragmentHandle handle;
@@ -64,6 +64,11 @@ class FIFOTask implements Runnable, Comparable {
   }
 
   public static FIFOTask of(final Runnable delegate, final FragmentContext context) {
+    return new FIFOTask(delegate, context.getHandle(), context.getStats());
+  }
+
+  public static FIFOTask of(final FragmentExecutor delegate) {
+    final FragmentContext context = delegate.getContext();
     return new FIFOTask(delegate, context.getHandle(), context.getStats());
   }
 }

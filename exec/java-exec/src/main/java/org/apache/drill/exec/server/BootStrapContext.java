@@ -123,10 +123,6 @@ public class BootStrapContext implements AutoCloseable {
     return executor;
   }
 
-  public ExecutorService getTaskExecutor() {
-    return taskExecutor;
-  }
-
   public DrillConfig getConfig() {
     return config;
   }
