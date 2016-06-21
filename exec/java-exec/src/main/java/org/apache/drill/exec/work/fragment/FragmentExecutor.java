@@ -361,8 +361,9 @@ public class FragmentExecutor implements Runnable {
       };
 
       injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-      queue.offer(FIFOTask.of(currentTask, fragmentContext));
-      success = true;
+//      queue.offer(FIFOTask.of(currentTask, fragmentContext));
+      success = true; // currentTask will take care of calling tryComplete() if anything goes wrong
+      currentTask.run();
     } catch (OutOfMemoryError | OutOfMemoryException e) {
       if (!(e instanceof OutOfMemoryError) || "Direct buffer memory".equals(e.getMessage())) {
         fail(UserException.memoryError(e).build(logger));
