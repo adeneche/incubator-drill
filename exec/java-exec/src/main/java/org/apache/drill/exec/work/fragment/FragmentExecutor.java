@@ -343,6 +343,12 @@ public class FragmentExecutor implements Runnable {
                       logger.trace("sending provider is full. backing off...");
                       return null;
                     case NOT_YET:
+                      if (fragmentContext.getAndResetScanYield()) {
+                        // scan just yielded put the task immediately in the queue
+                        queue.offer(FIFOTask.of(currentTask, fragmentContext));
+                        return null;
+                      }
+
                       final IncomingBatchProvider blockingProvider = Preconditions.checkNotNull(
                           fragmentContext.getAndResetBlockingIncomingBatchProvider(),
                           "blocking provider is required.");
