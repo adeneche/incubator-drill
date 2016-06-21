@@ -41,6 +41,7 @@ import org.apache.drill.exec.store.sys.PersistentStoreProvider;
 import org.apache.drill.exec.work.batch.ControlMessageHandler;
 import org.apache.drill.exec.work.foreman.Foreman;
 import org.apache.drill.exec.work.foreman.QueryManager;
+import org.apache.drill.exec.work.fragment.FIFOTask;
 import org.apache.drill.exec.work.fragment.FragmentExecutor;
 import org.apache.drill.exec.work.fragment.FragmentManager;
 import org.apache.drill.exec.work.user.UserWorker;
@@ -245,7 +246,7 @@ public class WorkManager implements AutoCloseable {
       });
 
       runningFragments.put(fragmentHandle, fragmentExecutor);
-      bContext.getTaskExecutor().execute(fragmentExecutor);
+      bContext.getTaskQueue().offer(FIFOTask.of(fragmentExecutor));
     }
 
     /**
@@ -271,7 +272,7 @@ public class WorkManager implements AutoCloseable {
       });
 
       runningFragments.put(fragmentHandle, fragmentExecutor);
-      bContext.getTaskExecutor().execute(fragmentExecutor);
+      bContext.getTaskQueue().offer(FIFOTask.of(fragmentExecutor));
     }
 
     public FragmentExecutor getFragmentRunner(final FragmentHandle handle) {
