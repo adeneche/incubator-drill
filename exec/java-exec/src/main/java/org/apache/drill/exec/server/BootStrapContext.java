@@ -50,7 +50,7 @@ public class BootStrapContext implements AutoCloseable {
   private final BufferAllocator allocator;
   private final ScanResult classpathScan;
   private final ExecutorService executor;
-  private final ExecutorService taskExecutor;
+  private final ThreadPoolExecutor taskExecutor;
   private final BlockingQueue<Runnable> tasks;
 
   static class Task implements Runnable, Comparable {
@@ -101,6 +101,7 @@ public class BootStrapContext implements AutoCloseable {
         super.execute(new Task(command));
       }
     };
+    taskExecutor.prestartAllCoreThreads();
 
     this.executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
       new SynchronousQueue<Runnable>(),
@@ -120,10 +121,6 @@ public class BootStrapContext implements AutoCloseable {
 
   public ExecutorService getExecutor() {
     return executor;
-  }
-
-  public ExecutorService getTaskExecutor() {
-    return taskExecutor;
   }
 
   public DrillConfig getConfig() {
