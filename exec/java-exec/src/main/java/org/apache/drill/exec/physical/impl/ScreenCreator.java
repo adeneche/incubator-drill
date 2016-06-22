@@ -69,6 +69,10 @@ public class ScreenCreator implements RootCreator<Screen> {
       }
     }
 
+    @Override
+    public void resetNumBatchesSent() {
+    }
+
     public ScreenRoot(FragmentContext context, RecordBatch incoming, Screen config) throws OutOfMemoryException {
       super(context, config);
       this.context = context;

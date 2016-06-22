@@ -73,6 +73,13 @@ public abstract class PartitionerTemplate implements Partitioner {
 
   private int outgoingRecordBatchSize = DEFAULT_RECORD_BATCH_SIZE;
 
+  @Override
+  public void resetNumBatchesSent() {
+    for (OutgoingRecordBatch outgoingBatch : outgoingBatches) {
+      outgoingBatch.tunnel.getAndResetNumBatchesSent();
+    }
+  }
+
   public PartitionerTemplate() { }
 
   @Override
@@ -329,7 +336,12 @@ public abstract class PartitionerTemplate implements Partitioner {
     public boolean send(final FragmentWritableBatch batch) {
       stats.startWait();
       try {
-        if (!tunnel.isSendingBufferAvailable() || !tunnel.sendRecordBatch(batch)) {
+        if (!tunnel.isSendingBufferAvailable()) {
+          return false;
+        }
+        if (!tunnel.sendRecordBatch(batch)) {
+          logger.info("Couldn't write to {} after {} batches",
+            tunnel.getRemoteEndpoint().getEndpoint().getAddress(), tunnel.getAndResetNumBatchesSent());
           return false;
         }
         updateStats(batch);

@@ -58,6 +58,13 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
     }
   }
 
+  @Override
+  public void resetNumBatchesSent() {
+    for (AccountingDataTunnel tunnel : tunnels) {
+      tunnel.getAndResetNumBatchesSent();
+    }
+  }
+
   public BroadcastSenderRootExec(final FragmentContext context, final RecordBatch incoming, final BroadcastSender config) {
     super(context, context.newOperatorContext(config, null), config);
     this.incoming = incoming;
@@ -136,6 +143,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
           try {
             if (!tunnels.get(i).sendRecordBatch(b2)) {
               savePendingState(new BroadcastSenderIterationState(out, i, null));
+              logger.info("Couldn't write after {} batches", tunnels.get(i).getAndResetNumBatchesSent());
               return IterationResult.SENDING_BUFFER_FULL;
             }
           } finally {
@@ -172,6 +180,7 @@ public class BroadcastSenderRootExec extends BaseRootExec<BroadcastSenderIterati
           try {
             if (!tunnels.get(i).sendRecordBatch(batch)) {
               savePendingState(new BroadcastSenderIterationState(out, i, writableBatch));
+              logger.info("Couldn't write after {} batches", tunnels.get(i).getAndResetNumBatchesSent());
               return IterationResult.SENDING_BUFFER_FULL;
             }
             updateStats(batch);

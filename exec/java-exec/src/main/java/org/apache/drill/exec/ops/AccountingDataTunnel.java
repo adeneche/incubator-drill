@@ -35,6 +35,7 @@ public interface AccountingDataTunnel {
 
   boolean sendRecordBatch(RpcOutcomeListener<GeneralRPCProtos.Ack> listener, FragmentWritableBatch batch);
 
+  int getAndResetNumBatchesSent();
   /**
    * See {@link DataTunnel#setTestInjectionControls(ControlsInjector, ExecutionControls, Logger)}.
    */

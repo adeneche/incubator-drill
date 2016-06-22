@@ -277,6 +277,7 @@ public class FragmentExecutor implements Runnable {
                 int iteration = 0;
                 int maxIterations = Integer.MAX_VALUE;
 
+                root.resetNumBatchesSent();
                 do {
                   isCompleted = false;
                   iteration++;

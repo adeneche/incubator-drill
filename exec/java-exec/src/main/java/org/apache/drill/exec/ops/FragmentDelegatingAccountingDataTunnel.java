@@ -63,6 +63,11 @@ public class FragmentDelegatingAccountingDataTunnel implements FragmentAccountin
   }
 
   @Override
+  public int getAndResetNumBatchesSent() {
+    return delegate.getAndResetNumBatchesSent();
+  }
+
+  @Override
   public void setTestInjectionControls(ControlsInjector testInjector, ExecutionControls testControls, Logger testLogger) {
     delegate.setTestInjectionControls(testInjector, testControls, testLogger);
   }

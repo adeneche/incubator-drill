@@ -111,6 +111,13 @@ public class PartitionSenderRootExec extends BaseRootExec<PartitionSenderIterati
     }
   }
 
+  @Override
+  public void resetNumBatchesSent() {
+    if (partitioner != null) {
+      partitioner.resetNumBatchesSent();
+    }
+  }
+
   public PartitionSenderRootExec(FragmentContext context,
                                  RecordBatch incoming,
                                  HashPartitionSender operator) throws OutOfMemoryException {

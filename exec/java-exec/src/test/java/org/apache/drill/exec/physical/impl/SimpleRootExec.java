@@ -137,4 +137,8 @@ public class SimpleRootExec implements RootExec, Iterable<ValueVector> {
 
   @Override
   public void setSendAvailabilityListener(final SendAvailabilityListener listener) { }
+
+  @Override
+  public void resetNumBatchesSent() {
+  }
 }

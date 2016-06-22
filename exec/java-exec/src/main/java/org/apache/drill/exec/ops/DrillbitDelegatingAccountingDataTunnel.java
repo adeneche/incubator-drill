@@ -61,6 +61,11 @@ public class DrillbitDelegatingAccountingDataTunnel implements AccountingDataTun
     delegate.setTestInjectionControls(testInjector, testControls, testLogger);
   }
 
+  @Override
+  public int getAndResetNumBatchesSent() {
+    return delegate.getAndResetNumBatchesSent();
+  }
+
   public static DrillbitDelegatingAccountingDataTunnel of(final DrillbitAccountingDataTunnel delegate,
                                                           final RpcOutcomeListener<GeneralRPCProtos.Ack> listener) {
     return new DrillbitDelegatingAccountingDataTunnel(delegate, listener);

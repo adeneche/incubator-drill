@@ -30,6 +30,8 @@ public class DrillbitAccountingDataTunnel implements AccountingDataTunnel {
   private final SendingAccountor sendingAccountor;
   private final RpcOutcomeListener<GeneralRPCProtos.Ack> statusHandler;
 
+  private int numBatchesSent;
+
   public DrillbitAccountingDataTunnel(final DataTunnel tunnel, final SendingAccountor accountor,
                                       final RpcOutcomeListener<GeneralRPCProtos.Ack> statusHandler) {
     this.tunnel = Preconditions.checkNotNull(tunnel, "tunnel is required");
@@ -60,9 +62,17 @@ public class DrillbitAccountingDataTunnel implements AccountingDataTunnel {
   public boolean sendRecordBatch(final RpcOutcomeListener<GeneralRPCProtos.Ack> listener, final FragmentWritableBatch batch) {
     boolean batchSent = tunnel.sendRecordBatch(listener, batch);
     if (batchSent) {
+      numBatchesSent++;
       sendingAccountor.increment();
     }
     return batchSent;
+  }
+
+  @Override
+  public int getAndResetNumBatchesSent() {
+    int result = numBatchesSent;
+    numBatchesSent = 0;
+    return result;
   }
 
   @Override

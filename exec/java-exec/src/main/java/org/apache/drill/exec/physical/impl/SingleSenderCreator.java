@@ -66,6 +66,11 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
       }
     }
 
+    @Override
+    public void resetNumBatchesSent() {
+      tunnel.getAndResetNumBatchesSent();
+    }
+
     SingleSenderRootExec(FragmentContext context, RecordBatch batch, SingleSender config) throws OutOfMemoryException {
       super(context, context.newOperatorContext(config, null), config);
       this.incoming = batch;
@@ -140,6 +145,8 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
           stats.startWait();
           try {
             if (!tunnel.sendRecordBatch(b2)) {
+              logger.info("Couldn't write to {} after {} batches",
+                tunnel.getRemoteEndpoint().getEndpoint().getAddress(), tunnel.getAndResetNumBatchesSent());
               savePendingState(new SingleSenderIterationState(out, null));
               return IterationResult.SENDING_BUFFER_FULL;
             }
@@ -166,6 +173,8 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
         try {
           if (!tunnel.sendRecordBatch(batch)) {
             savePendingState(new SingleSenderIterationState(out, writableBatch));
+            logger.info("Couldn't write to {} after {} batches",
+              tunnel.getRemoteEndpoint().getEndpoint().getAddress(), tunnel.getAndResetNumBatchesSent());
             return IterationResult.SENDING_BUFFER_FULL;
           }
           updateStats(batch);

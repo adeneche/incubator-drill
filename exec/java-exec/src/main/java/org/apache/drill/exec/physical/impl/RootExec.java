@@ -47,4 +47,6 @@ public interface RootExec extends AutoCloseable {
    * @param listener  sending buffer availability listener.
    */
   void setSendAvailabilityListener(SendAvailabilityListener listener);
+
+  void resetNumBatchesSent();
 }

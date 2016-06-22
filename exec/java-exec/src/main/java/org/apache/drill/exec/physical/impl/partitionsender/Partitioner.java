@@ -59,5 +59,7 @@ public interface Partitioner {
   int getRecordCount();
   List<Integer> getRecordCounts();
 
+  void resetNumBatchesSent();
+
   public static TemplateClassDefinition<Partitioner> TEMPLATE_DEFINITION = new TemplateClassDefinition<>(Partitioner.class, PartitionerTemplate.class);
 }
