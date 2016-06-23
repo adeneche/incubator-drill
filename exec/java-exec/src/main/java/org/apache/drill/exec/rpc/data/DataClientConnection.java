@@ -53,6 +53,11 @@ public class DataClientConnection extends RemoteConnection{
 
   }
 
+  public <SEND extends MessageLite, RECEIVE extends MessageLite> void sendNonBlocking(RpcOutcomeListener<RECEIVE> outcomeListener, RpcType rpcType,
+                                                                           SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
+    client.sendNonBlocking(outcomeListener, this, rpcType, protobufBody, clazz, dataBodies);
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;

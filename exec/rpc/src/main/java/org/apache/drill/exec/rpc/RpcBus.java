@@ -94,6 +94,42 @@ public abstract class RpcBus<T extends EnumLite, C extends RemoteConnection> imp
     send(listener, connection, rpcType, protobufBody, clazz, false, dataBodies);
   }
 
+  public <SEND extends MessageLite, RECEIVE extends MessageLite> void sendNonBlocking(RpcOutcomeListener<RECEIVE> listener, C connection, T rpcType,
+                                                                           SEND protobufBody, Class<RECEIVE> clazz, ByteBuf... dataBodies) {
+
+    Preconditions
+      .checkArgument(!connection.inEventLoop(),
+        "You attempted to send while inside the rpc event thread.  This isn't allowed because sending will block if the channel is backed up.");
+
+    boolean completed = false;
+
+    try {
+
+      assert !Arrays.asList(dataBodies).contains(null);
+      assert rpcConfig.checkSend(rpcType, protobufBody.getClass(), clazz);
+
+      Preconditions.checkNotNull(protobufBody);
+      ChannelListenerWithCoordinationId futureListener = connection.createNewRpcListener(listener, clazz);
+      OutboundRpcMessage m = new OutboundRpcMessage(RpcMode.REQUEST, rpcType, futureListener.getCoordinationId(), protobufBody, dataBodies);
+      ChannelFuture channelFuture = connection.getChannel().writeAndFlush(m);
+      channelFuture.addListener(futureListener);
+      channelFuture.addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
+      completed = true;
+    } catch (Exception | AssertionError e) {
+      listener.failed(new RpcException("Failure sending message.", e));
+    } finally {
+
+      if (!completed) {
+        if (dataBodies != null) {
+          for (ByteBuf b : dataBodies) {
+            b.release();
+          }
+
+        }
+      }
+    }
+  }
+
   public <SEND extends MessageLite, RECEIVE extends MessageLite> void send(RpcOutcomeListener<RECEIVE> listener, C connection, T rpcType,
       SEND protobufBody, Class<RECEIVE> clazz, boolean allowInEventLoop, ByteBuf... dataBodies) {
 
