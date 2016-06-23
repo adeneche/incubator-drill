@@ -152,10 +152,11 @@ public class DataTunnel {
 
     @Override
     public void doRpcCall(RpcOutcomeListener<Ack> outcomeListener, DataClientConnection connection) {
-      batchSent = connection.getChannel().isWritable();
-      if (batchSent) {
+//      batchSent = connection.getChannel().isWritable();
+//      if (batchSent) {
         connection.sendNotBlocking(new ThrottlingOutcomeListener(outcomeListener), RpcType.REQ_RECORD_BATCH, batch.getHeader(), Ack.class, batch.getBuffers());
-      }
+//      }
+      batchSent = true;
     }
 
     @Override

@@ -46,7 +46,7 @@ public class DrillbitAccountingDataTunnel implements AccountingDataTunnel {
 
   @Override
   public boolean isSendingBufferAvailable() {
-    return tunnel.getManager().isChannelWritable() && getSendingBufferAvailability() > 0;
+    return /*tunnel.getManager().isChannelWritable() &&*/ getSendingBufferAvailability() > 0;
   }
 
   public int getSendingBufferAvailability() {

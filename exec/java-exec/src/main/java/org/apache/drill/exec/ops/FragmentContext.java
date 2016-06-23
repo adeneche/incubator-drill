@@ -363,9 +363,9 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
       tunnel = new FragmentAccountingDataTunnelImpl(dataTunnel, minorEndpoint, sendingAccountor, statusHandler);
       fragmentTunnels.put(minorEndpoint, tunnel);
 
-      if (dataConnectionManagers.add(dataTunnel.getManager())) {
-        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
-      }
+//      if (dataConnectionManagers.add(dataTunnel.getManager())) {
+//        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
+//      }
     }
     return tunnel;
   }
@@ -377,9 +377,9 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
       tunnel = new DrillbitAccountingDataTunnel(dataTunnel, sendingAccountor, statusHandler);
       drillbitTunnels.put(drillbitEndpoint, tunnel);
 
-      if (dataConnectionManagers.add(dataTunnel.getManager())) {
-        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
-      }
+//      if (dataConnectionManagers.add(dataTunnel.getManager())) {
+//        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
+//      }
     }
     return tunnel;
   }
