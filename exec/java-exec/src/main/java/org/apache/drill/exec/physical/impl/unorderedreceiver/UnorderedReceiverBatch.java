@@ -64,6 +64,11 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   private final UnorderedReceiver config;
   private final OperatorContext oContext;
 
+  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", 10);
+
+  private int numBatchesReturned = 0; // total batches read after latest NOT_YET
+  private boolean shouldYield = false;
+
   public enum Metric implements MetricDef {
     BYTES_RECEIVED,
     NUM_SENDERS;
@@ -150,6 +155,13 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   int count;
   @Override
   public IterOutcome next() {
+    if (shouldYield) {
+      numBatchesReturned = 0;
+      shouldYield = false;
+      context.markScanYield();
+      return IterOutcome.NOT_YET;
+    }
+
     batchLoader.resetRecordCount();
     stats.startProcessing();
     try{
@@ -162,6 +174,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
             && (!first || batch.getHeader().getDef().getFieldCount() == 0)) {
           if (batch.isNone()) {
             logger.trace("Received NOT_YET signal");
+            numBatchesReturned = 0; // reset counter as we are returning a NOT_YET
             return IterOutcome.NOT_YET;
           }
           if (batch.getHeader().getIsLastBatch()) {
@@ -207,6 +220,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
           batch.getHeader().getSendingMinorFragmentId()
       );
       batch.release();
+      shouldYield = (++numBatchesReturned >= numBatchesBeforeYield);
       if(schemaChanged) {
         this.schema = batchLoader.getSchema();
         stats.batchReceived(0, rbd.getRecordCount(), true);
