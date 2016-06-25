@@ -113,6 +113,11 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
   private long[] inputCounts;
   private long[] outputCounts;
 
+  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", 10);
+
+  private int numBatchesReturned = 0; // total batches read after latest NOT_YET
+  private boolean shouldYield = false;
+
   public static enum Metric implements MetricDef{
     BYTES_RECEIVED,
     NUM_SENDERS,
@@ -178,6 +183,14 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     if (fragProviders.length == 0) {
       return IterOutcome.NONE;
     }
+
+    if (shouldYield) {
+      numBatchesReturned = 0;
+      shouldYield = false;
+      context.markScanYield();
+      return IterOutcome.NOT_YET;
+    }
+
     boolean schemaChanged = false;
 
     if (prevBatchWasFull) {
@@ -220,6 +233,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
         }
 
         if (rawBatch != null && rawBatch.isNone()) {
+          numBatchesReturned = 0;
           return IterOutcome.NOT_YET;
         }
 
@@ -235,6 +249,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             while ((rawBatch = getNext(providerIndex)) != null && rawBatch.getHeader().getDef().getRecordCount() == 0) {
               // Do nothing
               if (rawBatch.isNone()) {
+                numBatchesReturned = 0;
                 return IterOutcome.NOT_YET;
               }
             }
@@ -341,6 +356,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
           try {
             final RawFragmentBatch batch = getNext(populatedBatchIndex);
             if (batch != null && batch.isNone()) {
+              numBatchesReturned = 0;
               return IterOutcome.NOT_YET;
             }
             incomingBatches[populatedBatchIndex] = batch;
@@ -389,6 +405,7 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
             if (nextBatch.isNone()) {
               pqueue.add(node); // re-enqueue for retry later
               prevWasDepleted = true; // save this state so we don't call copyRecordToOutgoingBatch() twice
+              numBatchesReturned = 0;
               return IterOutcome.NOT_YET;
             }
           }
@@ -465,6 +482,8 @@ public class MergingRecordBatch extends AbstractRecordBatch<MergingReceiverPOP> 
     if (pqueue.isEmpty()) {
       state = BatchState.DONE;
     }
+
+    shouldYield = (++numBatchesReturned >= numBatchesBeforeYield);
 
     if (schemaChanged) {
       return IterOutcome.OK_NEW_SCHEMA;
