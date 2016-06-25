@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
 import org.apache.drill.common.expression.FieldReference;
 import org.apache.drill.common.logical.data.JoinCondition;
 import org.apache.drill.common.logical.data.NamedExpression;
@@ -341,14 +342,24 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     hashTable = ht.createAndSetupHashTable(null);
   }
 
+  private boolean buildRunAtLeastOnce = false;
+
   public IterOutcome executeBuildPhase() throws SchemaChangeException, ClassTransformationException, IOException {
     //Setup the underlying hash table
 
-    // skip first batch if count is zero, as it may be an empty schema batch
-    if (right.getRecordCount() == 0) {
-      for (final VectorWrapper<?> w : right) {
-        w.clear();
+    if (!buildRunAtLeastOnce) {
+      // skip first batch if count is zero, as it may be an empty schema batch
+      if (right.getRecordCount() == 0) {
+        for (final VectorWrapper<?> w : right) {
+          w.clear();
+        }
+        rightUpstream = next(right);
       }
+
+      buildRunAtLeastOnce = true;
+    } else {
+      Preconditions.checkState(rightUpstream == IterOutcome.NOT_YET, "executeBuildPhase() run more than once yet" +
+        "previous rightUpstream was not NO_YET");
       rightUpstream = next(right);
     }
 
