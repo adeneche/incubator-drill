@@ -63,6 +63,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
     private long totalTimeQueued;
     private long waitOnRead;
     private long waitOnSend;
+    private long maxRuntime;
 
     public MinorFragmentProfile()
     {
@@ -253,6 +254,19 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         return this;
     }
 
+    // maxRuntime
+
+    public long getMaxRuntime()
+    {
+        return maxRuntime;
+    }
+
+    public MinorFragmentProfile setMaxRuntime(long maxRuntime)
+    {
+        this.maxRuntime = maxRuntime;
+        return this;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException
@@ -354,6 +368,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
                 case 14:
                     message.waitOnSend = input.readInt64();
                     break;
+                case 15:
+                    message.maxRuntime = input.readInt64();
+                    break;
                 default:
                     input.handleUnknownField(number, this);
             }   
@@ -413,6 +430,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
 
         if(message.waitOnSend != 0)
             output.writeInt64(14, message.waitOnSend, false);
+
+        if(message.maxRuntime != 0)
+            output.writeInt64(15, message.maxRuntime, false);
     }
 
     public String getFieldName(int number)
@@ -433,6 +453,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
             case 12: return "totalTimeQueued";
             case 13: return "waitOnRead";
             case 14: return "waitOnSend";
+            case 15: return "maxRuntime";
             default: return null;
         }
     }
@@ -460,6 +481,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         __fieldMap.put("totalTimeQueued", 12);
         __fieldMap.put("waitOnRead", 13);
         __fieldMap.put("waitOnSend", 14);
+        __fieldMap.put("maxRuntime", 15);
     }
     
 }

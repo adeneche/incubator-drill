@@ -50,6 +50,8 @@ public class FragmentStats {
   private long totalWaitOnRead;
   private long totalWaitOnSend;
 
+  private long maxConsecutiveRuntime;
+
   public FragmentStats(BufferAllocator allocator, MetricRegistry metrics, DrillbitEndpoint endpoint) {
     this.endpoint = endpoint;
     this.allocator = allocator;
@@ -66,6 +68,7 @@ public class FragmentStats {
     long waitOnSend = totalWaitOnSend + (waitType == WAIT_TYPE.SEND ? waitDuration : 0);
     prfB.setWaitOnRead(waitOnRead);
     prfB.setWaitOnSend(waitOnSend);
+    prfB.setMaxRuntime(maxConsecutiveRuntime);
 
     prfB.setEndpoint(endpoint);
     for(OperatorStats o : operators){
@@ -79,6 +82,12 @@ public class FragmentStats {
 
   public void addTimeInQueue(long timeInQueue) {
     totalTimeEnqueued += timeInQueue;
+  }
+
+  public void setConsecutiveRuntime(long duration) {
+    if (duration > maxConsecutiveRuntime) {
+      maxConsecutiveRuntime = duration;
+    }
   }
 
   public void startWait(WAIT_TYPE waitType) {

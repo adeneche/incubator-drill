@@ -106,7 +106,7 @@ public class FragmentWrapper {
   }
 
   public static final String[] FRAGMENT_COLUMNS = {"Minor Fragment ID", "Host Name", "Start", "End",
-    "Runtime", "Wait QUEUE", "Wait READ", "Wait SEND", "Max Records", "Max Batches", "Last Update",
+    "Runtime", "Max consec. Runtime", "Wait QUEUE", "Wait READ", "Wait SEND", "Max Records", "Max Batches", "Last Update",
     "Last Progress", "Peak Memory", "State"};
 
   // Not including minor fragment ID
@@ -146,6 +146,7 @@ public class FragmentWrapper {
       long runningTime = minor.getEndTime() - minor.getStartTime() - minor.getTotalTimeQueued()
         - minor.getWaitOnRead() - minor.getWaitOnSend();
       builder.appendMillis(runningTime, null);
+      builder.appendMillis(minor.getMaxRuntime(), null);
       builder.appendMillis(minor.getTotalTimeQueued(), null);
       builder.appendMillis(minor.getWaitOnRead(), null);
       builder.appendMillis(minor.getWaitOnSend(), null);

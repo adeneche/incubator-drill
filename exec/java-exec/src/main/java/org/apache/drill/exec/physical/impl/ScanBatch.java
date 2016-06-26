@@ -132,6 +132,8 @@ public class ScanBatch implements CloseableRecordBatch {
     partitionColumnDesignator = labelValue == null ? "dir" : labelValue.string_val;
 
     addPartitionVectors();
+
+    System.out.printf("num batches before yielding %d%n", numBatchesBeforeYield);
   }
 
   public ScanBatch(PhysicalOperator subScanConfig, FragmentContext context,
