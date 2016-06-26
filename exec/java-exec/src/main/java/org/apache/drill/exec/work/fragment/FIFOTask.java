@@ -17,13 +17,15 @@
  */
 package org.apache.drill.exec.work.fragment;
 
+import com.google.common.base.Stopwatch;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.FragmentStats;
 import org.apache.drill.exec.proto.ExecProtos;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class FIFOTask implements Runnable, Comparable {
+public class FIFOTask implements Runnable, Comparable<FIFOTask> {
   private final static AtomicInteger sequencer = new AtomicInteger();
   private final Runnable delegate;
   private final ExecProtos.FragmentHandle handle;
@@ -43,24 +45,21 @@ public class FIFOTask implements Runnable, Comparable {
   @Override
   public void run() {
     stats.addTimeInQueue(System.currentTimeMillis() - timeAddedToQueue);
+    Stopwatch watch = Stopwatch.createStarted();
     delegate.run();
+    stats.setConsecutiveRuntime(watch.elapsed(TimeUnit.MILLISECONDS));
   }
 
   @Override
-  public int compareTo(final Object o) {
-    if (o instanceof FIFOTask) {
-      final FIFOTask other = FIFOTask.class.cast(o);
-      if (handle.getQueryId().equals(other.handle.getQueryId())) {
-        final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
-        // break ties in fifo order
-        if (result != 0) {
-          return result;
-        }
+  public int compareTo(final FIFOTask other) {
+    if (handle.getQueryId().equals(other.handle.getQueryId())) {
+      final int result = handle.getMajorFragmentId() - other.handle.getMajorFragmentId();
+      // break ties in fifo order
+      if (result != 0) {
+        return result;
       }
-      return rank - other.rank;
     }
-    // otherwise arbitrary order
-    return 0;
+    return rank - other.rank;
   }
 
   public static FIFOTask of(final Runnable delegate, final FragmentContext context) {

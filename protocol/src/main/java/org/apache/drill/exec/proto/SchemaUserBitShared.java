@@ -2119,6 +2119,8 @@ public final class SchemaUserBitShared
                     output.writeInt64(13, message.getWaitOnRead(), false);
                 if(message.hasWaitOnSend())
                     output.writeInt64(14, message.getWaitOnSend(), false);
+                if(message.hasMaxRuntime())
+                    output.writeInt64(15, message.getMaxRuntime(), false);
             }
             public boolean isInitialized(org.apache.drill.exec.proto.UserBitShared.MinorFragmentProfile message)
             {
@@ -2203,6 +2205,9 @@ public final class SchemaUserBitShared
                         case 14:
                             builder.setWaitOnSend(input.readInt64());
                             break;
+                        case 15:
+                            builder.setMaxRuntime(input.readInt64());
+                            break;
                         default:
                             input.handleUnknownField(number, this);
                     }
@@ -2257,6 +2262,7 @@ public final class SchemaUserBitShared
                 case 12: return "totalTimeQueued";
                 case 13: return "waitOnRead";
                 case 14: return "waitOnSend";
+                case 15: return "maxRuntime";
                 default: return null;
             }
         }
@@ -2282,6 +2288,7 @@ public final class SchemaUserBitShared
             fieldMap.put("totalTimeQueued", 12);
             fieldMap.put("waitOnRead", 13);
             fieldMap.put("waitOnSend", 14);
+            fieldMap.put("maxRuntime", 15);
         }
     }
 
