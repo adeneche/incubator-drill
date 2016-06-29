@@ -267,11 +267,11 @@ public abstract class PartitionerTemplate implements Partitioner {
         continue;
       }
 
-      if (!batch.tunnel.isSendingBufferAvailable()) {
-        return false;
+      if (batch.tunnel.isSendingBufferAvailable()) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   public abstract void doSetup(@Named("context") FragmentContext context, @Named("incoming") RecordBatch incoming, @Named("outgoing") OutgoingRecordBatch[] outgoing);
