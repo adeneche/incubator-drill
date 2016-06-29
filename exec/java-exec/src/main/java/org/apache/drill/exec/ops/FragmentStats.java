@@ -51,6 +51,7 @@ public class FragmentStats {
   private long totalWaitOnSend;
 
   private long maxConsecutiveRuntime;
+  private long setupTime;
 
   public FragmentStats(BufferAllocator allocator, MetricRegistry metrics, DrillbitEndpoint endpoint) {
     this.endpoint = endpoint;
@@ -69,6 +70,7 @@ public class FragmentStats {
     prfB.setWaitOnRead(waitOnRead);
     prfB.setWaitOnSend(waitOnSend);
     prfB.setMaxRuntime(maxConsecutiveRuntime);
+    prfB.setSetupTime(setupTime);
 
     prfB.setEndpoint(endpoint);
     for(OperatorStats o : operators){
@@ -88,6 +90,10 @@ public class FragmentStats {
     if (duration > maxConsecutiveRuntime) {
       maxConsecutiveRuntime = duration;
     }
+  }
+
+  public void setSetupTime(long duration) {
+    setupTime = duration;
   }
 
   public void startWait(WAIT_TYPE waitType) {

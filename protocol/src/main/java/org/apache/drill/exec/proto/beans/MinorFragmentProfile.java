@@ -64,6 +64,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
     private long waitOnRead;
     private long waitOnSend;
     private long maxRuntime;
+    private long setupTime;
 
     public MinorFragmentProfile()
     {
@@ -267,6 +268,19 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         return this;
     }
 
+    // setupTime
+
+    public long getSetupTime()
+    {
+        return setupTime;
+    }
+
+    public MinorFragmentProfile setSetupTime(long setupTime)
+    {
+        this.setupTime = setupTime;
+        return this;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException
@@ -371,6 +385,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
                 case 15:
                     message.maxRuntime = input.readInt64();
                     break;
+                case 16:
+                    message.setupTime = input.readInt64();
+                    break;
                 default:
                     input.handleUnknownField(number, this);
             }   
@@ -433,6 +450,9 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
 
         if(message.maxRuntime != 0)
             output.writeInt64(15, message.maxRuntime, false);
+
+        if(message.setupTime != 0)
+            output.writeInt64(16, message.setupTime, false);
     }
 
     public String getFieldName(int number)
@@ -454,6 +474,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
             case 13: return "waitOnRead";
             case 14: return "waitOnSend";
             case 15: return "maxRuntime";
+            case 16: return "setupTime";
             default: return null;
         }
     }
@@ -482,6 +503,7 @@ public final class MinorFragmentProfile implements Externalizable, Message<Minor
         __fieldMap.put("waitOnRead", 13);
         __fieldMap.put("waitOnSend", 14);
         __fieldMap.put("maxRuntime", 15);
+        __fieldMap.put("setupTime", 16);
     }
     
 }

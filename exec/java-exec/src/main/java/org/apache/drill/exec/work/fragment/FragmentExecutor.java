@@ -21,10 +21,12 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import org.apache.drill.common.CatastrophicFailure;
 import org.apache.drill.common.DeferredException;
 import org.apache.drill.common.EventProcessor;
@@ -219,6 +221,8 @@ public class FragmentExecutor implements Runnable {
     final FragmentStats stats = fragmentContext.getStats();
     stats.setStartTimeToNow();
 
+    Stopwatch watch = Stopwatch.createStarted();
+
     boolean success = false;
     try {
       // if we didn't get the root operator when the executor was created, create it now.
@@ -367,9 +371,15 @@ public class FragmentExecutor implements Runnable {
       };
 
       injector.injectChecked(fragmentContext.getExecutionControls(), "fragment-execution", IOException.class);
-//      queue.offer(FIFOTask.of(currentTask, fragmentContext));
+
       success = true; // currentTask will take care of calling tryComplete() if anything goes wrong
+      stats.setSetupTime(watch.elapsed(TimeUnit.MILLISECONDS));
+
+      watch.reset();
+
+      watch.start();
       currentTask.run();
+      stats.setConsecutiveRuntime(watch.elapsed(TimeUnit.MILLISECONDS));
     } catch (OutOfMemoryError | OutOfMemoryException e) {
       if (!(e instanceof OutOfMemoryError) || "Direct buffer memory".equals(e.getMessage())) {
         fail(UserException.memoryError(e).build(logger));
