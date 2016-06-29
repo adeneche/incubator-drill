@@ -224,6 +224,7 @@ message MinorFragmentProfile {
   optional int64 wait_on_read = 13;
   optional int64 wait_on_send = 14;
   optional int64 max_runtime = 15;
+  optional int64 setup_time = 16;
 }
 
 message OperatorProfile {

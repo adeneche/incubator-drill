@@ -105,7 +105,7 @@ public class FragmentWrapper {
     tb.appendBytes(maxMem.getMaxMemoryUsed(), null);
   }
 
-  public static final String[] FRAGMENT_COLUMNS = {"Minor Fragment ID", "Host Name", "Start", "End",
+  public static final String[] FRAGMENT_COLUMNS = {"Minor Fragment ID", "Host Name", "Start", "End", "Setup",
     "Runtime", "Max consec. Runtime", "Wait QUEUE", "Wait READ", "Wait SEND", "Max Records", "Max Batches", "Last Update",
     "Last Progress", "Peak Memory", "State"};
 
@@ -143,6 +143,7 @@ public class FragmentWrapper {
       builder.appendCell(minor.getEndpoint().getAddress(), null);
       builder.appendMillis(minor.getStartTime() - start, null);
       builder.appendMillis(minor.getEndTime() - start, null);
+      builder.appendMillis(minor.getSetupTime(), null);
       long runningTime = minor.getEndTime() - minor.getStartTime() - minor.getTotalTimeQueued()
         - minor.getWaitOnRead() - minor.getWaitOnSend();
       builder.appendMillis(runningTime, null);
