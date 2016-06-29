@@ -29,7 +29,7 @@ public interface StreamingAggregator {
   public static TemplateClassDefinition<StreamingAggregator> TEMPLATE_DEFINITION = new TemplateClassDefinition<StreamingAggregator>(StreamingAggregator.class, StreamingAggTemplate.class);
 
   public static enum AggOutcome {
-    RETURN_OUTCOME, CLEANUP_AND_RETURN, UPDATE_AGGREGATOR;
+    RETURN_OUTCOME, CLEANUP_AND_RETURN, UPDATE_AGGREGATOR, CONTINUE
   }
 
   public abstract void setup(OperatorContext context, RecordBatch incoming, StreamingAggBatch outgoing) throws SchemaChangeException;

@@ -59,13 +59,15 @@ import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JVar;
 
 public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(StreamingAggBatch.class);
+  private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(StreamingAggBatch.class);
 
   private StreamingAggregator aggregator;
   private final RecordBatch incoming;
   private boolean done = false;
   private boolean first = true;
   private int recordCount = 0;
+
+  private boolean gotFirstBatch = true;
 
   /*
    * DRILL-2277, DRILL-2411: For straight aggregates without a group by clause we need to perform special handling when
@@ -131,7 +133,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
     }
 
     // this is only called on the first batch. Beyond this, the aggregator manages batches.
-    if (aggregator == null || first) {
+    if (gotFirstBatch && (aggregator == null || first)) {
       IterOutcome outcome;
       if (first && incoming.getRecordCount() > 0) {
         first = false;
@@ -164,6 +166,8 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
       default:
         throw new IllegalStateException(String.format("unknown outcome %s", outcome));
       }
+
+      gotFirstBatch = false;
     }
 
     AggOutcome out = aggregator.doWork();
@@ -184,7 +188,7 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
         return IterOutcome.OK_NEW_SCHEMA;
       } else if (outcome == IterOutcome.OK && first) {
         outcome = IterOutcome.OK_NEW_SCHEMA;
-      } else if (outcome != IterOutcome.OUT_OF_MEMORY) {
+      } else if (outcome != IterOutcome.OUT_OF_MEMORY && outcome != IterOutcome.NOT_YET) {
         first = false;
       }
       return outcome;
@@ -244,6 +248,11 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
    */
   private boolean createAggregator() {
     logger.debug("Creating new aggregator.");
+
+    if (aggregator != null) {
+      aggregator.cleanup();
+    }
+
     try {
       stats.startSetup();
       this.aggregator = createAggregatorInternal();
@@ -426,6 +435,10 @@ public class StreamingAggBatch extends AbstractRecordBatch<StreamingAggregate> {
 
   @Override
   public void close() {
+    if (aggregator != null) {
+      aggregator.cleanup();
+      aggregator = null;
+    }
     super.close();
   }
 

@@ -20,7 +20,6 @@ package org.apache.drill.exec.physical.impl.aggregate;
 import javax.inject.Named;
 
 import org.apache.drill.exec.exception.SchemaChangeException;
-import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.record.RecordBatch;
 import org.apache.drill.exec.record.RecordBatch.IterOutcome;
@@ -44,6 +43,7 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
   private StreamingAggBatch outgoing;
   private boolean done = false;
   private OperatorContext context;
+  private InternalBatch previous;
 
 
   @Override
@@ -71,19 +71,28 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
     return outputCount;
   }
 
+  private boolean shouldAllocate = true;
+  private boolean consumedEmptyBatches = false;
+  private boolean currentBatchProcessed = false;
+
   @Override
   public AggOutcome doWork() {
     if (done) {
       outcome = IterOutcome.NONE;
       return AggOutcome.CLEANUP_AND_RETURN;
     }
-    try { // outside loop to ensure that first is set to false after the first run.
-      outputCount = 0;
-      // allocate outgoing since either this is the first time or if a subsequent time we would
-      // have sent the previous outgoing batch to downstream operator
-      allocateOutgoing();
+    boolean receivedNotYet = false;
 
-      if (first) {
+    try { // outside loop to ensure that first is set to false after the first run.
+      if (shouldAllocate) {
+        outputCount = 0;
+        // allocate outgoing since either this is the first time or if a subsequent time we would
+        // have sent the previous outgoing batch to downstream operator
+        allocateOutgoing();
+        shouldAllocate = false;
+      }
+
+      if (!consumedEmptyBatches) {
         this.currentIndex = incoming.getRecordCount() == 0 ? 0 : this.getVectorIndex(underlyingIndex);
 
         // consume empty batches until we get one with data.
@@ -99,6 +108,8 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
                 currentIndex = this.getVectorIndex(underlyingIndex);
                 break outer;
               }
+            case NOT_YET:
+              receivedNotYet = true;
             case OUT_OF_MEMORY:
               outcome = out;
               return AggOutcome.RETURN_OUTCOME;
@@ -113,59 +124,66 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
             }
           }
         }
+
+        consumedEmptyBatches = true;
       }
 
 
-      if (newSchema) {
+      if (newSchema) { // the aggregator will be recreated, so this will never be executed more than once
         return AggOutcome.UPDATE_AGGREGATOR;
       }
 
-      if (lastOutcome != null) {
+      if (lastOutcome != null) { // we received a terminal IterOutcome
         outcome = lastOutcome;
         return AggOutcome.CLEANUP_AND_RETURN;
       }
 
       outside: while(true) {
-      // loop through existing records, adding as necessary.
-        for (; underlyingIndex < incoming.getRecordCount(); incIndex()) {
-          if (EXTRA_DEBUG) {
-            logger.debug("Doing loop with values underlying {}, current {}", underlyingIndex, currentIndex);
-          }
-          if (previousIndex == -1) {
+        if (!currentBatchProcessed) {
+
+          // loop through existing records, adding as necessary.
+          for (; underlyingIndex < incoming.getRecordCount(); incIndex()) {
             if (EXTRA_DEBUG) {
-              logger.debug("Adding the initial row's keys and values.");
+              logger.debug("Doing loop with values underlying {}, current {}", underlyingIndex, currentIndex);
             }
-            addRecordInc(currentIndex);
-          }
-          else if (isSame( previousIndex, currentIndex )) {
-            if (EXTRA_DEBUG) {
-              logger.debug("Values were found the same, adding.");
-            }
-            addRecordInc(currentIndex);
-          } else {
-            if (EXTRA_DEBUG) {
-              logger.debug("Values were different, outputting previous batch.");
-            }
-            if(!outputToBatch(previousIndex)) {
-              // There is still space in outgoing container, so proceed to the next input.
+            if (previousIndex == -1) {
               if (EXTRA_DEBUG) {
-                logger.debug("Output successful.");
+                logger.debug("Adding the initial row's keys and values.");
+              }
+              addRecordInc(currentIndex);
+            } else if (isSame(previousIndex, currentIndex)) {
+              if (EXTRA_DEBUG) {
+                logger.debug("Values were found the same, adding.");
               }
               addRecordInc(currentIndex);
             } else {
               if (EXTRA_DEBUG) {
-                logger.debug("Output container has reached its capacity. Flushing it.");
+                logger.debug("Values were different, outputting previous batch.");
               }
+              if (!outputToBatch(previousIndex)) {
+                // There is still space in outgoing container, so proceed to the next input.
+                if (EXTRA_DEBUG) {
+                  logger.debug("Output successful.");
+                }
+                addRecordInc(currentIndex);
+              } else {
+                if (EXTRA_DEBUG) {
+                  logger.debug("Output container has reached its capacity. Flushing it.");
+                }
 
-              // Update the indices to set the state for processing next record in incoming batch in subsequent doWork calls.
-              previousIndex = -1;
-              return setOkAndReturn();
+                // Update the indices to set the state for processing next record in incoming batch in subsequent doWork calls.
+                previousIndex = -1;
+                return setOkAndReturn();
+              }
             }
+            previousIndex = currentIndex;
           }
-          previousIndex = currentIndex;
-        }
 
-        InternalBatch previous = new InternalBatch(incoming, context);
+          assert previous == null : "previous batch should have been cleared";
+          previous = new InternalBatch(incoming, context);
+
+          currentBatchProcessed = true;
+        }
 
         try {
           while (true) {
@@ -188,15 +206,13 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
                 }
                 return setOkAndReturn();
               }else{
-                if (first && out == IterOutcome.OK) {
-                  out = IterOutcome.OK_NEW_SCHEMA;
-                }
                 outcome = out;
                 return AggOutcome.CLEANUP_AND_RETURN;
               }
 
             case NOT_YET:
               this.outcome = out;
+              receivedNotYet = true;
               return AggOutcome.RETURN_OUTCOME;
 
             case OK_NEW_SCHEMA:
@@ -255,15 +271,20 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
             }
           }
         } finally {
-          // make sure to clear previous
-          if (previous != null) {
-            previous.clear();
+          if (!receivedNotYet) {
+            // make sure to clear previous
+            if (previous != null) {
+              previous.clear();
+              previous = null;
+            }
+            currentBatchProcessed = false;
           }
         }
       }
     } finally {
-      if (first) {
-        first = !first;
+      if (!receivedNotYet) {
+        shouldAllocate = true;
+        first = false;
       }
     }
 
@@ -337,6 +358,10 @@ public abstract class StreamingAggTemplate implements StreamingAggregator {
 
   @Override
   public void cleanup() {
+    if (previous != null) {
+      previous.clear();
+      previous = null;
+    }
   }
 
   public abstract void setupInterior(@Named("incoming") RecordBatch incoming, @Named("outgoing") RecordBatch outgoing) throws SchemaChangeException;
