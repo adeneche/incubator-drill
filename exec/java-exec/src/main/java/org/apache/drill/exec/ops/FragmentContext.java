@@ -79,6 +79,8 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   private final List<OperatorContextImpl> contexts = Lists.newLinkedList();
 
+  private final long yieldAfterMS = Long.getLong("fragment.yield", 30000);
+
   private final DrillbitContext context;
   private final UserClientConnection connection; // is null if this context is for non-root fragment
   private final QueryContext queryContext; // is null if this context is for non-root fragment
@@ -522,6 +524,10 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   public void stopRun() {
     stats.setConsecutiveRuntime(runtimeWatch.elapsed(TimeUnit.MILLISECONDS));
     runtimeWatch.reset();
+  }
+
+  public boolean shouldYield() {
+    return runtimeWatch.isRunning() && runtimeWatch.elapsed(TimeUnit.MILLISECONDS) > yieldAfterMS;
   }
 
   public void setBlockingIncomingBatchProvider(final IncomingBatchProvider provider) {

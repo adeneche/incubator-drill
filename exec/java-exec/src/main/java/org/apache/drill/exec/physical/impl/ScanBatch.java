@@ -73,8 +73,6 @@ public class ScanBatch implements CloseableRecordBatch {
   private final Map<String, ValueVector> fieldVectorMap =
       Maps.newHashMap();
 
-  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", 10);
-
   private int recordCount;
   private final FragmentContext context;
   private final OperatorContext oContext;
@@ -90,9 +88,6 @@ public class ScanBatch implements CloseableRecordBatch {
   private boolean done = false;
   private SchemaChangeCallBack callBack = new SchemaChangeCallBack();
   private boolean hasReadNonEmptyFile = false;
-
-  private int numBatchesRead = 0; // total batches read after latest NOT_YET
-  private boolean shouldYield = false;
 
   public ScanBatch(PhysicalOperator subScanConfig, FragmentContext context,
                    OperatorContext oContext, Iterator<RecordReader> readers,
@@ -180,9 +175,7 @@ public class ScanBatch implements CloseableRecordBatch {
   public IterOutcome next() {
     if (done) {
       return IterOutcome.NONE;
-    } else if (shouldYield) {
-      numBatchesRead = 0;
-      shouldYield = false;
+    } else if (context.shouldYield()) {
       context.markScanYield();
       return IterOutcome.NOT_YET;
     }
@@ -260,8 +253,6 @@ public class ScanBatch implements CloseableRecordBatch {
       // this is a slight misuse of this metric but it will allow Readers to report how many records they generated.
       final boolean isNewSchema = mutator.isNewSchema();
       oContext.getStats().batchReceived(0, getRecordCount(), isNewSchema);
-
-      shouldYield = (++numBatchesRead >= numBatchesBeforeYield);
 
       if (isNewSchema) {
         container.buildSchema(SelectionVectorMode.NONE);
