@@ -527,7 +527,9 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   }
 
   public boolean shouldYield() {
-    return runtimeWatch.isRunning() && runtimeWatch.elapsed(TimeUnit.MILLISECONDS) > yieldAfterMS;
+    final long elapsed = runtimeWatch.elapsed(TimeUnit.MILLISECONDS);
+    logger.debug("SHOULD YIELD: elapsed = {}", elapsed);
+    return elapsed > yieldAfterMS;
   }
 
   public void setBlockingIncomingBatchProvider(final IncomingBatchProvider provider) {

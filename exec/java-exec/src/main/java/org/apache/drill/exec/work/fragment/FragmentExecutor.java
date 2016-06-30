@@ -265,17 +265,17 @@ public class FragmentExecutor implements Runnable {
           final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
           executor.setName(newThreadName);
 
-          if (pendingCompletion) {
-            pendingCompletion = false;
-            logger.trace("resuming pending completion");
-            boolean completed = tryComplete(); // finish cleaning up
-            Preconditions.checkState(completed,
-              "tryComplete() shouldn't return false when resuming a pending completion");
-            executor.setName(originalThreadName);
-            return;
-          }
-
           try {
+
+            if (pendingCompletion) {
+              pendingCompletion = false;
+              logger.trace("resuming pending completion");
+              boolean completed = tryComplete(); // finish cleaning up
+              Preconditions.checkState(completed,
+                "tryComplete() shouldn't return false when resuming a pending completion");
+              return;
+            }
+
             queryUserUgi.doAs(new PrivilegedExceptionAction<Void>() {
               @Override
               public Void run() throws Exception {
