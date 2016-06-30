@@ -73,7 +73,7 @@ public class ScanBatch implements CloseableRecordBatch {
   private final Map<String, ValueVector> fieldVectorMap =
       Maps.newHashMap();
 
-  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", 10);
+  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", Integer.MAX_VALUE);
 
   private int recordCount;
   private final FragmentContext context;

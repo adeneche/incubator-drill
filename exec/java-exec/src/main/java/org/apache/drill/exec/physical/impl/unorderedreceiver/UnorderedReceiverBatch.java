@@ -64,7 +64,7 @@ public class UnorderedReceiverBatch implements CloseableRecordBatch {
   private final UnorderedReceiver config;
   private final OperatorContext oContext;
 
-  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", 10);
+  private final int numBatchesBeforeYield = Integer.getInteger("fragment.yield", Integer.MAX_VALUE);
 
   private int numBatchesReturned = 0; // total batches read after latest NOT_YET
   private boolean shouldYield = false;
