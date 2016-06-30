@@ -17,12 +17,10 @@
  */
 package org.apache.drill.exec.work.fragment;
 
-import com.google.common.base.Stopwatch;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.FragmentStats;
 import org.apache.drill.exec.proto.ExecProtos;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FIFOTask implements Runnable, Comparable<FIFOTask> {
@@ -45,9 +43,7 @@ public class FIFOTask implements Runnable, Comparable<FIFOTask> {
   @Override
   public void run() {
     stats.addTimeInQueue(System.currentTimeMillis() - timeAddedToQueue);
-    Stopwatch watch = Stopwatch.createStarted();
     delegate.run();
-    stats.setConsecutiveRuntime(watch.elapsed(TimeUnit.MILLISECONDS));
   }
 
   @Override

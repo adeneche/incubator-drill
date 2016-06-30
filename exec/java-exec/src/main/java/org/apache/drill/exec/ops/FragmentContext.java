@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.ops;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import io.netty.buffer.DrillBuf;
 
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.drill.common.config.DrillConfig;
@@ -91,6 +93,8 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
   private ExecutorState executorState;
   private final ExecutionControls executionControls;
   private final Set<DataConnectionManager> dataConnectionManagers = Sets.newHashSet();
+
+  private final Stopwatch runtimeWatch = Stopwatch.createUnstarted();
 
   private final DataConnectionManager.ChannelWritabilityListener cwl = new DataConnectionManager.ChannelWritabilityListener() {
     @Override
@@ -509,6 +513,15 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
     @Deprecated
     public Throwable getFailureCause();
 
+  }
+
+  public void startRun() {
+    runtimeWatch.start();
+  }
+
+  public void stopRun() {
+    stats.setConsecutiveRuntime(runtimeWatch.elapsed(TimeUnit.MILLISECONDS));
+    runtimeWatch.reset();
   }
 
   public void setBlockingIncomingBatchProvider(final IncomingBatchProvider provider) {

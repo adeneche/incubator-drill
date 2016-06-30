@@ -258,6 +258,8 @@ public class FragmentExecutor implements Runnable {
 
         @Override
         public void run() {
+          fragmentContext.startRun();
+
           final Thread executor = Thread.currentThread();
           final String originalThreadName = executor.getName();
           final String newThreadName = QueryIdHelper.getExecutorThreadName(fragmentHandle);
@@ -366,6 +368,7 @@ public class FragmentExecutor implements Runnable {
             fail(ex);
           } finally {
             executor.setName(originalThreadName);
+            fragmentContext.stopRun();
           }
         }
       };
@@ -375,11 +378,7 @@ public class FragmentExecutor implements Runnable {
       success = true; // currentTask will take care of calling tryComplete() if anything goes wrong
       stats.setSetupTime(watch.elapsed(TimeUnit.MILLISECONDS));
 
-      watch.reset();
-
-      watch.start();
       currentTask.run();
-      stats.setConsecutiveRuntime(watch.elapsed(TimeUnit.MILLISECONDS));
     } catch (OutOfMemoryError | OutOfMemoryException e) {
       if (!(e instanceof OutOfMemoryError) || "Direct buffer memory".equals(e.getMessage())) {
         fail(UserException.memoryError(e).build(logger));
