@@ -29,8 +29,8 @@ import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.compile.sig.RuntimeOverridden;
 import org.apache.drill.exec.expr.TypeHelper;
 import org.apache.drill.exec.memory.BufferAllocator;
-import org.apache.drill.exec.ops.FragmentDelegatingAccountingDataTunnel;
-import org.apache.drill.exec.ops.FragmentAccountingDataTunnel;
+import org.apache.drill.exec.ops.AccountingDataTunnel;
+import org.apache.drill.exec.ops.DrillbitDelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.ops.OperatorStats;
@@ -112,9 +112,8 @@ public abstract class PartitionerTemplate implements Partitioner {
     for (MinorFragmentEndpoint destination : popConfig.getDestinations()) {
       // create outgoingBatches only for subset of Destination Points
       if ( fieldId >= start && fieldId < end ) {
-        final FragmentAccountingDataTunnel tunnel =
-            FragmentDelegatingAccountingDataTunnel.of(context.getDataTunnel(destination), sendAvailabilityNotifier);
-        outgoingBatches.add(new OutgoingRecordBatch(stats, popConfig, tunnel, context, oContext.getAllocator()));
+        final AccountingDataTunnel tunnel = DrillbitDelegatingAccountingDataTunnel.of(context.getDataTunnel(destination.getEndpoint()), sendAvailabilityNotifier);
+        outgoingBatches.add(new OutgoingRecordBatch(stats, popConfig, tunnel, destination.getId(), context, oContext.getAllocator()));
       }
       fieldId++;
     }
@@ -279,7 +278,8 @@ public abstract class PartitionerTemplate implements Partitioner {
 
   public class OutgoingRecordBatch implements PartitionOutgoingBatch, VectorAccessible {
 
-    private final FragmentAccountingDataTunnel tunnel;
+    private final AccountingDataTunnel tunnel;
+    private final int remoteEndpointId;
     private final HashPartitionSender operator;
     private final FragmentContext context;
     private final BufferAllocator allocator;
@@ -290,12 +290,13 @@ public abstract class PartitionerTemplate implements Partitioner {
     private int recordCount;
     private int totalRecords;
 
-    public OutgoingRecordBatch(OperatorStats stats, HashPartitionSender operator, FragmentAccountingDataTunnel tunnel,
-                               FragmentContext context, BufferAllocator allocator) {
+    public OutgoingRecordBatch(OperatorStats stats, HashPartitionSender operator, AccountingDataTunnel tunnel,
+                               int remoteEndpointId, FragmentContext context, BufferAllocator allocator) {
       this.context = context;
       this.allocator = allocator;
       this.operator = operator;
       this.tunnel = tunnel;
+      this.remoteEndpointId = remoteEndpointId;
       this.stats = stats;
     }
 
@@ -348,14 +349,14 @@ public abstract class PartitionerTemplate implements Partitioner {
         final String msg = isLastBatch ? "attemping to flush last batch to frag:{}:{} [recordCount={}; totalRecords={}]"
             : "attemping to flush outgoing batch to frag:{}:{} [recordCount={}; totalRecords={}]";
 
-        logger.trace(msg, operator.getOppositeMajorFragmentId(), tunnel.getRemoteEndpoint().getId(), recordCount, totalRecords);
+        logger.trace(msg, operator.getOppositeMajorFragmentId(), remoteEndpointId, recordCount, totalRecords);
       }
       // first, we make sure tunnel is writable before creating writable batch since getWritableBatch cleans incoming
       // batch. there is no way to retry sending the batch once the incoming batch is cleared.
       if (!tunnel.isSendingBufferAvailable()) {
         if (isLastBatch) {
           logger.trace("send buffer full: flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
-              tunnel.getRemoteEndpoint().getId());
+              remoteEndpointId);
         }
         return false;
       }
@@ -368,11 +369,11 @@ public abstract class PartitionerTemplate implements Partitioner {
             handle.getMajorFragmentId(),
             handle.getMinorFragmentId(),
             operator.getOppositeMajorFragmentId(),
-            tunnel.getRemoteEndpoint().getId(),
+            remoteEndpointId,
             incoming.getSchema());
 
         logger.trace("state was cancelled: flushing last batch to frag:{}:{}", operator.getOppositeMajorFragmentId(),
-            tunnel.getRemoteEndpoint().getId());
+            remoteEndpointId);
 
       } else {
         // if no records found send an empty batch with schema
@@ -381,7 +382,7 @@ public abstract class PartitionerTemplate implements Partitioner {
             handle.getMajorFragmentId(),
             handle.getMinorFragmentId(),
             operator.getOppositeMajorFragmentId(),
-            tunnel.getRemoteEndpoint().getId(), // opposite minor fragment id
+            remoteEndpointId, // opposite minor fragment id
             getWritableBatch());
       }
 
@@ -537,7 +538,7 @@ public abstract class PartitionerTemplate implements Partitioner {
     }
 
     @Override
-    public FragmentAccountingDataTunnel getTunnel() {
+    public AccountingDataTunnel getTunnel() {
       return tunnel;
     }
 

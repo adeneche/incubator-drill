@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.drill.common.config.DrillConfig;
@@ -38,7 +37,6 @@ import org.apache.drill.exec.expr.ClassGenerator;
 import org.apache.drill.exec.expr.CodeGenerator;
 import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
 import org.apache.drill.exec.memory.BufferAllocator;
-import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.physical.impl.WritableListener;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
@@ -75,7 +73,6 @@ import com.google.common.collect.Maps;
 public class FragmentContext implements AutoCloseable, UdfUtilities {
   private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FragmentContext.class);
 
-  private final Map<MinorFragmentEndpoint, FragmentAccountingDataTunnel> fragmentTunnels = Maps.newHashMap();
   private final Map<DrillbitEndpoint, DrillbitAccountingDataTunnel> drillbitTunnels = Maps.newHashMap();
 
   private final List<OperatorContextImpl> contexts = Lists.newLinkedList();
@@ -354,20 +351,6 @@ public class FragmentContext implements AutoCloseable, UdfUtilities {
 
   public ControlTunnel getControlTunnel(final DrillbitEndpoint endpoint) {
     return context.getController().getTunnel(endpoint);
-  }
-
-  public FragmentAccountingDataTunnel getDataTunnel(final MinorFragmentEndpoint minorEndpoint) {
-    FragmentAccountingDataTunnel tunnel = fragmentTunnels.get(minorEndpoint);
-    if (tunnel == null) {
-      DataTunnel dataTunnel = context.getDataConnectionsPool().getTunnel(minorEndpoint.getEndpoint());
-      tunnel = new FragmentAccountingDataTunnelImpl(dataTunnel, minorEndpoint, sendingAccountor, statusHandler);
-      fragmentTunnels.put(minorEndpoint, tunnel);
-
-      if (dataConnectionManagers.add(dataTunnel.getManager())) {
-        dataTunnel.getManager().addChannelWritabilityListener(this, cwl);
-      }
-    }
-    return tunnel;
   }
 
   public DrillbitAccountingDataTunnel getDataTunnel(final DrillbitEndpoint drillbitEndpoint) {

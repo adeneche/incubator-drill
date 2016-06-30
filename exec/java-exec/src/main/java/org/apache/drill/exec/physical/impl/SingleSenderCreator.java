@@ -21,8 +21,8 @@ import java.util.List;
 
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.exec.exception.OutOfMemoryException;
-import org.apache.drill.exec.ops.FragmentDelegatingAccountingDataTunnel;
-import org.apache.drill.exec.ops.FragmentAccountingDataTunnel;
+import org.apache.drill.exec.ops.AccountingDataTunnel;
+import org.apache.drill.exec.ops.DrillbitDelegatingAccountingDataTunnel;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.MetricDef;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
@@ -52,7 +52,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
     private final FragmentHandle oppositeHandle;
 
     private RecordBatch incoming;
-    private FragmentAccountingDataTunnel tunnel;
+    private AccountingDataTunnel tunnel;
     private FragmentHandle handle;
     private volatile boolean ok = true;
     private volatile boolean done = false;
@@ -77,8 +77,7 @@ public class SingleSenderCreator implements RootCreator<SingleSender>{
           .build();
       final MinorFragmentEndpoint endpoint = MinorFragmentEndpoint.of(config.getOppositeMinorFragmentId(),
           config.getDestination());
-      tunnel = context.getDataTunnel(endpoint);
-      tunnel = FragmentDelegatingAccountingDataTunnel.of(context.getDataTunnel(endpoint), getSendAvailabilityNotifier());
+      tunnel = DrillbitDelegatingAccountingDataTunnel.of(context.getDataTunnel(endpoint.getEndpoint()), getSendAvailabilityNotifier());
       tunnel.setTestInjectionControls(injector, context.getExecutionControls(), logger);
     }
 

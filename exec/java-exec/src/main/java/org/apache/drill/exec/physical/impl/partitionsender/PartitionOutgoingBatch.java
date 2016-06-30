@@ -18,7 +18,7 @@
 package org.apache.drill.exec.physical.impl.partitionsender;
 
 
-import org.apache.drill.exec.ops.FragmentAccountingDataTunnel;
+import org.apache.drill.exec.ops.AccountingDataTunnel;
 
 public interface PartitionOutgoingBatch {
 
@@ -30,11 +30,11 @@ public interface PartitionOutgoingBatch {
 
   PartitionState getState();
 
-  public long getTotalRecords();
+  long getTotalRecords();
 
-  public void terminate();
+  void terminate();
 
-  FragmentAccountingDataTunnel getTunnel();
+  AccountingDataTunnel getTunnel();
 
   void clear();
 }
